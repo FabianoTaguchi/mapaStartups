@@ -228,6 +228,173 @@
     URL.revokeObjectURL(a.href);
   }
 
+  // ---------- Resumos (requer o servidor: npm start) ----------
+
+  const CONCORRENCIA = 2;
+  const resumo = {
+    botao: $('#resumir'),
+    exportar: $('#exportar-resumos'),
+    maxResultados: $('#max-resultados'),
+    status: $('#status-servidor'),
+    lista: $('#resumos'),
+    contador: $('#contador-resumos'),
+  };
+  let resumos = [];
+  let resumindo = false;
+
+  async function verificarServidor() {
+    if (location.protocol === 'file:') {
+      resumo.botao.disabled = true;
+      resumo.status.textContent = 'Para gerar resumos, rode "npm start" e abra http://localhost:3000.';
+      return;
+    }
+    try {
+      const st = await (await fetch('/api/status')).json();
+      if (!st.claude) {
+        resumo.status.textContent = 'Servidor sem ANTHROPIC_API_KEY configurada: não é possível gerar resumos.';
+        resumo.botao.disabled = true;
+      } else {
+        resumo.status.textContent = st.google
+          ? 'Resultados do Google (via Serper.dev), resumidos pelo Claude.'
+          : 'SERPER_API_KEY não configurada: a pesquisa será feita pelo próprio Claude, não pelo Google.';
+      }
+    } catch {
+      resumo.botao.disabled = true;
+      resumo.status.textContent = 'Servidor indisponível. Rode "npm start" na pasta do projeto.';
+    }
+  }
+
+  function linkSeguro(url, texto) {
+    if (!url || !/^https?:\/\//i.test(url)) return null;
+    const a = document.createElement('a');
+    a.href = url;
+    a.target = '_blank';
+    a.rel = 'noopener noreferrer';
+    a.textContent = texto || url;
+    return a;
+  }
+
+  function campo(dl, rotulo, valor, comoLink) {
+    const dt = document.createElement('dt');
+    dt.textContent = rotulo;
+    const dd = document.createElement('dd');
+    const link = comoLink && linkSeguro(valor);
+    if (link) dd.appendChild(link);
+    else if (valor) dd.textContent = valor;
+    else { dd.textContent = 'não identificado'; dd.className = 'nd'; }
+    dl.append(dt, dd);
+  }
+
+  function renderizarBloco(r) {
+    r.el.innerHTML = '';
+    const h3 = document.createElement('h3');
+    h3.textContent = r.consulta + ' ';
+    const estado = document.createElement('span');
+    estado.className = 'estado';
+    if (r.estado === 'carregando') estado.textContent = '— buscando e resumindo…';
+    else if (r.estado === 'aguardando') estado.textContent = '— na fila';
+    else if (r.estado === 'erro') { estado.textContent = `— erro: ${r.erro}`; estado.classList.add('erro'); }
+    else estado.textContent = `— ${r.itens.length} encontrado(s)`;
+    h3.appendChild(estado);
+    r.el.appendChild(h3);
+
+    if (r.estado !== 'ok' || !r.itens.length) return;
+    const grade = document.createElement('div');
+    grade.className = 'itens';
+    r.itens.forEach((it) => {
+      const card = document.createElement('div');
+      card.className = 'item';
+      const h4 = document.createElement('h4');
+      h4.textContent = it.nome;
+      const p = document.createElement('p');
+      p.textContent = it.resumo;
+      const dl = document.createElement('dl');
+      campo(dl, 'Responsável', it.responsavel);
+      campo(dl, 'Área', it.area);
+      campo(dl, 'Website', it.website, true);
+      campo(dl, 'Fonte', it.fonte, true);
+      card.append(h4, p, dl);
+      grade.appendChild(card);
+    });
+    r.el.appendChild(grade);
+  }
+
+  function atualizarContadorResumos() {
+    const total = resumos.reduce((n, r) => n + (r.itens ? r.itens.length : 0), 0);
+    resumo.contador.textContent = total;
+    resumo.exportar.disabled = !total;
+  }
+
+  async function processar(r) {
+    r.estado = 'carregando';
+    renderizarBloco(r);
+    try {
+      const resp = await fetch('/api/resumir', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          consulta: r.consulta,
+          maxResultados: Number(resumo.maxResultados.value),
+          filtros: { periodo: el.periodo.value, idioma: el.idioma.value, pais: el.pais.value },
+        }),
+      });
+      const dados = await resp.json();
+      if (!resp.ok) throw new Error(dados.erro || `HTTP ${resp.status}`);
+      r.itens = dados.itens;
+      r.estado = 'ok';
+    } catch (e) {
+      r.estado = 'erro';
+      r.erro = e.message;
+    }
+    renderizarBloco(r);
+    atualizarContadorResumos();
+  }
+
+  async function resumirTodas() {
+    if (resumindo || !buscas.length) return;
+    if (buscas.length > 10 && !confirm(`Gerar resumos para ${buscas.length} buscas? Cada busca consome créditos das APIs.`)) return;
+    resumindo = true;
+    resumo.botao.disabled = true;
+    resumo.botao.textContent = 'Resumindo…';
+    resumo.lista.innerHTML = '';
+    resumos = buscas.map((b) => {
+      const div = document.createElement('div');
+      div.className = 'bloco-resumo';
+      resumo.lista.appendChild(div);
+      const r = { consulta: b.consulta, estado: 'aguardando', itens: [], el: div };
+      renderizarBloco(r);
+      return r;
+    });
+    atualizarContadorResumos();
+
+    const fila = resumos.slice();
+    await Promise.all(Array.from({ length: CONCORRENCIA }, async () => {
+      while (fila.length) await processar(fila.shift());
+    }));
+
+    resumindo = false;
+    resumo.botao.disabled = false;
+    resumo.botao.textContent = 'Buscar e resumir';
+  }
+
+  function exportarResumos() {
+    const esc = (s) => `"${String(s ?? '').replace(/"/g, '""')}"`;
+    const linhas = [['consulta', 'nome', 'responsavel', 'area', 'website', 'resumo', 'fonte']];
+    resumos.forEach((r) => (r.itens || []).forEach((it) => {
+      linhas.push([r.consulta, it.nome, it.responsavel, it.area, it.website, it.resumo, it.fonte]);
+    }));
+    const csv = '﻿' + linhas.map((l) => l.map(esc).join(';')).join('\r\n');
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
+    a.download = 'resumos-startups.csv';
+    a.click();
+    URL.revokeObjectURL(a.href);
+  }
+
+  resumo.botao.addEventListener('click', resumirTodas);
+  resumo.exportar.addEventListener('click', exportarResumos);
+  verificarServidor();
+
   // ---------- Persistência ----------
 
   const camposPersistidos = ['fixo', 'excluir', 'site', 'filetype', 'periodo', 'idioma', 'pais', 'onde', 'k'];

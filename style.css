@@ -71,3 +71,18 @@ button:disabled { opacity: .5; cursor: default; }
 .vazio { color: var(--muted); }
 .aviso { background: #fff4e5; color: #7a4b00; border-radius: 6px; padding: 8px 12px; }
 @media (prefers-color-scheme: dark) { .aviso { background: #3a2c12; color: #ffd08a; } }
+
+label.inline { display: flex; align-items: center; gap: 6px; }
+.bloco-resumo { border-top: 1px solid var(--border); padding: 12px 0; }
+.bloco-resumo h3 { font-size: 15px; margin: 0 0 8px; }
+.bloco-resumo .estado { color: var(--muted); font-size: 13px; font-weight: normal; }
+.bloco-resumo .erro { color: #c5221f; }
+.itens { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 10px; }
+.item { border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; background: var(--bg); }
+.item h4 { margin: 0 0 4px; font-size: 15px; }
+.item p { margin: 4px 0; font-size: 13px; }
+.item dl { display: grid; grid-template-columns: auto 1fr; gap: 2px 8px; margin: 6px 0 0; font-size: 13px; }
+.item dt { color: var(--muted); }
+.item dd { margin: 0; word-break: break-word; }
+.item a { color: var(--accent); }
+.nd { color: var(--muted); font-style: italic; }

@@ -108,6 +108,25 @@
       <ol id="resultados" class="resultados"></ol>
       <p id="vazio" class="vazio">Adicione ao menos um termo para gerar as buscas.</p>
     </section>
+
+    <section class="card">
+      <div class="row between">
+        <h2>5. Resumos das startups/projetos <span id="contador-resumos" class="badge">0</span></h2>
+        <div class="row">
+          <label class="inline">Resultados por busca
+            <select id="max-resultados">
+              <option value="5">5</option>
+              <option value="10" selected>10</option>
+              <option value="20">20</option>
+            </select>
+          </label>
+          <button type="button" id="resumir">Buscar e resumir</button>
+          <button type="button" id="exportar-resumos" class="secundario" disabled>Exportar resumos CSV</button>
+        </div>
+      </div>
+      <p id="status-servidor" class="vazio"></p>
+      <div id="resumos"></div>
+    </section>
   </main>
 
   <footer>

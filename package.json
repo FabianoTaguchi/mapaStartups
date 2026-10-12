@@ -1,0 +1,26 @@
+{
+  "name": "mapa-startups",
+  "version": "1.0.0",
+  "description": "Busca no Google por termos e resume startups/projetos",
+  "main": "app.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node --env-file-if-exists=.env server.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/FabianoTaguchi/mapaStartups.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/FabianoTaguchi/mapaStartups/issues"
+  },
+  "homepage": "https://github.com/FabianoTaguchi/mapaStartups#readme",
+  "type": "module",
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.133.0",
+    "zod": "^4.6.7"
+  }
+}
