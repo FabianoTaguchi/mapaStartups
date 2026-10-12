@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Mapa Startups – Busca por termos</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header>
+    <h1>Mapa Startups</h1>
+    <p>Monte buscas no Google a partir de vários termos, combinados ou não.</p>
+  </header>
+
+  <main>
+    <section class="card">
+      <h2>1. Termos</h2>
+      <label for="termo-input">Digite um termo e pressione Enter (ou cole vários separados por vírgula/linha)</label>
+      <div class="tags" id="tags">
+        <input id="termo-input" type="text" placeholder="ex.: startup, inovação, Cuiabá" autocomplete="off">
+      </div>
+      <div class="row">
+        <button type="button" id="limpar-termos" class="link">Limpar termos</button>
+        <label class="check"><input type="checkbox" id="aspas" checked> Usar aspas (frase exata) em termos com mais de uma palavra</label>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>2. Como combinar</h2>
+      <div class="modos">
+        <label><input type="radio" name="modo" value="todos" checked> <strong>Todos juntos (E)</strong><span>Uma busca contendo todos os termos</span></label>
+        <label><input type="radio" name="modo" value="ou"> <strong>Qualquer um (OU)</strong><span>Uma busca com os termos ligados por OR</span></label>
+        <label><input type="radio" name="modo" value="separados"> <strong>Cada termo separado</strong><span>Uma busca para cada termo</span></label>
+        <label><input type="radio" name="modo" value="k"> <strong>Combinações de
+          <select id="k"></select> termos</strong><span>Todas as combinações com esse tamanho</span></label>
+        <label><input type="radio" name="modo" value="todas"> <strong>Todas as combinações</strong><span>Todo subconjunto possível dos termos</span></label>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>3. Filtros (opcionais)</h2>
+      <div class="grid">
+        <label>Termo fixo (incluído em todas as buscas)
+          <input type="text" id="fixo" placeholder="ex.: startup">
+        </label>
+        <label>Excluir termos (separados por vírgula)
+          <input type="text" id="excluir" placeholder="ex.: vagas, curso">
+        </label>
+        <label>Restringir a site/domínio
+          <input type="text" id="site" placeholder="ex.: .com.br ou linkedin.com">
+        </label>
+        <label>Tipo de arquivo
+          <select id="filetype">
+            <option value="">Qualquer</option>
+            <option value="pdf">PDF</option>
+            <option value="doc">DOC/DOCX</option>
+            <option value="xls">XLS/XLSX</option>
+            <option value="ppt">PPT/PPTX</option>
+            <option value="csv">CSV</option>
+          </select>
+        </label>
+        <label>Período
+          <select id="periodo">
+            <option value="">Qualquer data</option>
+            <option value="qdr:d">Últimas 24 horas</option>
+            <option value="qdr:w">Última semana</option>
+            <option value="qdr:m">Último mês</option>
+            <option value="qdr:y">Último ano</option>
+          </select>
+        </label>
+        <label>Idioma
+          <select id="idioma">
+            <option value="">Qualquer</option>
+            <option value="lang_pt" selected>Português</option>
+            <option value="lang_en">Inglês</option>
+            <option value="lang_es">Espanhol</option>
+          </select>
+        </label>
+        <label>País
+          <select id="pais">
+            <option value="">Qualquer</option>
+            <option value="countryBR" selected>Brasil</option>
+            <option value="countryPT">Portugal</option>
+            <option value="countryUS">Estados Unidos</option>
+          </select>
+        </label>
+        <label>Onde procurar o termo
+          <select id="onde">
+            <option value="">Em qualquer lugar da página</option>
+            <option value="intitle">No título (intitle:)</option>
+            <option value="inurl">No endereço (inurl:)</option>
+            <option value="intext">No texto (intext:)</option>
+          </select>
+        </label>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="row between">
+        <h2>4. Buscas geradas <span id="contador" class="badge">0</span></h2>
+        <div class="row">
+          <button type="button" id="abrir-todas">Abrir todas</button>
+          <button type="button" id="copiar" class="secundario">Copiar links</button>
+          <button type="button" id="exportar" class="secundario">Exportar CSV</button>
+        </div>
+      </div>
+      <p id="aviso" class="aviso" hidden></p>
+      <ol id="resultados" class="resultados"></ol>
+      <p id="vazio" class="vazio">Adicione ao menos um termo para gerar as buscas.</p>
+    </section>
+  </main>
+
+  <footer>
+    Dica: ao usar “Abrir todas”, permita pop-ups para esta página no navegador.
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>
