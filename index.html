@@ -111,7 +111,40 @@
 
     <section class="card">
       <div class="row between">
-        <h2>5. Resumos das startups/projetos <span id="contador-resumos" class="badge">0</span></h2>
+        <h2>5. Resumos com o Claude <span id="contador-resumos" class="badge">0</span></h2>
+        <div class="row">
+          <button type="button" id="exportar-resumos" class="secundario" disabled>Exportar resumos CSV</button>
+          <button type="button" id="limpar-resumos" class="link">Limpar resumos</button>
+        </div>
+      </div>
+
+      <ol class="passos">
+        <li>Clique em <strong>Copiar e abrir o Claude</strong> em uma das partes abaixo. Se o texto não aparecer já preenchido no chat, cole com Ctrl+V. Confira se a <em>pesquisa na web</em> está ativada.</li>
+        <li>Quando o Claude terminar, copie a resposta inteira dele.</li>
+        <li>Cole a resposta no campo abaixo e clique em <strong>Importar resposta</strong>. Repita para as outras partes.</li>
+      </ol>
+
+      <div class="row">
+        <label class="inline">Buscas por mensagem
+          <select id="tamanho-lote">
+            <option value="5">5</option>
+            <option value="8" selected>8</option>
+            <option value="10">10</option>
+            <option value="15">15</option>
+          </select>
+        </label>
+      </div>
+      <ul id="lotes" class="lotes"></ul>
+
+      <label for="resposta-claude">Resposta do Claude</label>
+      <textarea id="resposta-claude" rows="6" placeholder="Cole aqui a resposta do Claude (pode colar mais de uma parte de uma vez)"></textarea>
+      <div class="row">
+        <button type="button" id="importar-resposta">Importar resposta</button>
+        <span id="status-importacao" class="vazio"></span>
+      </div>
+
+      <details id="modo-automatico" hidden>
+        <summary>Modo automático (servidor local)</summary>
         <div class="row">
           <label class="inline">Resultados por busca
             <select id="max-resultados">
@@ -121,16 +154,16 @@
             </select>
           </label>
           <button type="button" id="resumir">Buscar e resumir</button>
-          <button type="button" id="exportar-resumos" class="secundario" disabled>Exportar resumos CSV</button>
         </div>
-      </div>
-      <p id="status-servidor" class="vazio"></p>
+        <p id="status-servidor" class="vazio"></p>
+      </details>
+
       <div id="resumos"></div>
     </section>
   </main>
 
   <footer>
-    Dica: ao usar “Abrir todas”, permita pop-ups para esta página no navegador.
+    Dica: permita pop-ups para esta página no navegador, para “Abrir todas” e “Copiar e abrir o Claude” funcionarem.
   </footer>
 
   <script src="app.js"></script>

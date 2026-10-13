@@ -185,6 +185,7 @@
       li.append(a, code);
       el.resultados.appendChild(li);
     });
+    renderizarLotes();
   }
 
   function atualizar() {
@@ -228,38 +229,35 @@
     URL.revokeObjectURL(a.href);
   }
 
-  // ---------- Resumos (requer o servidor: npm start) ----------
+  // ---------- Resumos ----------
+  // Modo principal: o usuário pesquisa com o Claude no chat (claude.ai) e cola
+  // a resposta aqui. Modo opcional: servidor local (npm start) faz tudo sozinho.
 
+  const CABECALHO = ['consulta', 'nome', 'responsavel', 'area', 'website', 'resumo', 'fonte'];
+  const CHAVE_RESUMOS = 'mapaStartups.resumos';
   const CONCORRENCIA = 2;
   const resumo = {
-    botao: $('#resumir'),
-    exportar: $('#exportar-resumos'),
-    maxResultados: $('#max-resultados'),
-    status: $('#status-servidor'),
     lista: $('#resumos'),
     contador: $('#contador-resumos'),
+    exportar: $('#exportar-resumos'),
+    limpar: $('#limpar-resumos'),
+    tamanhoLote: $('#tamanho-lote'),
+    lotes: $('#lotes'),
+    resposta: $('#resposta-claude'),
+    importar: $('#importar-resposta'),
+    statusImportacao: $('#status-importacao'),
+    modoAuto: $('#modo-automatico'),
+    botao: $('#resumir'),
+    maxResultados: $('#max-resultados'),
+    status: $('#status-servidor'),
   };
   let resumos = [];
   let resumindo = false;
 
-  async function verificarServidor() {
-    if (location.protocol === 'file:') {
-      resumo.botao.disabled = true;
-      resumo.status.textContent = 'Para gerar resumos, rode "npm start" e abra http://localhost:3000.';
-      return;
-    }
-    try {
-      const { busca, ia } = await (await fetch('/api/status')).json();
-      const desc = (s) => `${s.provedor}${s.ok ? ' ✓' : ` ✗ (${s.detalhe})`}`;
-      resumo.status.textContent = `Busca: ${desc(busca)} · IA: ${desc(ia)}`;
-      if (!busca.ok || !ia.ok) {
-        resumo.status.textContent += ' — corrija o item marcado com ✗ e recarregue a página.';
-      }
-    } catch {
-      resumo.botao.disabled = true;
-      resumo.status.textContent = 'Servidor indisponível. Rode "npm start" na pasta do projeto.';
-    }
-  }
+  // Compara buscas ignorando aspas, espaços extras e maiúsculas.
+  const chave = (t) => String(t || '').replace(/["“”]/g, '').replace(/\s+/g, ' ').trim().toLowerCase();
+
+  // ----- Cartões -----
 
   function linkSeguro(url, texto) {
     if (!url || !/^https?:\/\//i.test(url)) return null;
@@ -283,6 +281,11 @@
   }
 
   function renderizarBloco(r) {
+    if (!r.el) {
+      r.el = document.createElement('div');
+      r.el.className = 'bloco-resumo';
+      resumo.lista.appendChild(r.el);
+    }
     r.el.innerHTML = '';
     const h3 = document.createElement('h3');
     h3.textContent = r.consulta + ' ';
@@ -304,7 +307,7 @@
       const h4 = document.createElement('h4');
       h4.textContent = it.nome;
       const p = document.createElement('p');
-      p.textContent = it.resumo;
+      p.textContent = it.resumo || '';
       const dl = document.createElement('dl');
       campo(dl, 'Responsável', it.responsavel);
       campo(dl, 'Área', it.area);
@@ -316,10 +319,231 @@
     r.el.appendChild(grade);
   }
 
-  function atualizarContadorResumos() {
+  function atualizarResumos() {
     const total = resumos.reduce((n, r) => n + (r.itens ? r.itens.length : 0), 0);
     resumo.contador.textContent = total;
     resumo.exportar.disabled = !total;
+    renderizarLotes();
+    try {
+      const salvos = resumos.filter((r) => r.estado === 'ok').map((r) => ({ consulta: r.consulta, itens: r.itens }));
+      localStorage.setItem(CHAVE_RESUMOS, JSON.stringify(salvos));
+    } catch { /* armazenamento indisponível */ }
+  }
+
+  function obterResumo(consulta) {
+    let r = resumos.find((x) => chave(x.consulta) === chave(consulta));
+    if (!r) {
+      // Usa o texto original da busca quando o Claude o devolve ligeiramente diferente.
+      const original = buscas.find((b) => chave(b.consulta) === chave(consulta));
+      r = { consulta: original ? original.consulta : consulta, estado: 'ok', itens: [] };
+      resumos.push(r);
+    }
+    return r;
+  }
+
+  // ----- Prompt para o Claude -----
+
+  function textoSelecionado(select) {
+    return select.value ? select.options[select.selectedIndex].text : '';
+  }
+
+  function montarPrompt(lote) {
+    const preferencias = [];
+    if (el.idioma.value) preferencias.push(`páginas em ${textoSelecionado(el.idioma).toLowerCase()}`);
+    if (el.pais.value) preferencias.push(`resultados do país: ${textoSelecionado(el.pais)}`);
+    if (el.periodo.value) preferencias.push(`publicados no período: ${textoSelecionado(el.periodo).toLowerCase()}`);
+
+    return [
+      'Pesquise na web cada uma das buscas abaixo, como se fossem feitas no Google.',
+      'Para cada startup ou projeto de inovação citado nos resultados, descubra: nome, responsável (fundador, CEO ou coordenador), área de atuação, website oficial, um resumo de uma ou duas frases e a URL da fonte.',
+      'Abra as páginas e faça buscas complementares quando precisar, principalmente para achar o responsável e o site oficial.',
+      'Não invente nada: se não encontrar uma informação, deixe o campo vazio. Ignore listas genéricas, vagas e notícias sem uma startup ou projeto específico. Não repita a mesma startup dentro da mesma busca.',
+      preferencias.length ? `Dê preferência a ${preferencias.join('; ')}.` : '',
+      '',
+      'Buscas:',
+      ...lote.map((b, i) => `${i + 1}. ${b.consulta}`),
+      '',
+      'Responda SOMENTE com um bloco de código CSV, separado por ponto e vírgula, com este cabeçalho exato:',
+      CABECALHO.join(';'),
+      'Na coluna "consulta", repita exatamente o texto da busca. Coloque entre aspas duplas os campos que tiverem ponto e vírgula.',
+    ].filter((l, i, arr) => l !== '' || arr[i - 1] !== '').join('\n');
+  }
+
+  function copiarTexto(texto) {
+    // Cópia síncrona: precisa acontecer antes de abrir a nova aba.
+    const area = document.createElement('textarea');
+    area.value = texto;
+    area.style.position = 'fixed';
+    area.style.opacity = '0';
+    document.body.appendChild(area);
+    area.select();
+    let ok = false;
+    try { ok = document.execCommand('copy'); } catch { /* sem suporte */ }
+    area.remove();
+    if (!ok && navigator.clipboard) navigator.clipboard.writeText(texto).catch(() => {});
+    return ok;
+  }
+
+  function lotesAtuais() {
+    const tamanho = Number(resumo.tamanhoLote.value) || 8;
+    const lotes = [];
+    for (let i = 0; i < buscas.length; i += tamanho) lotes.push(buscas.slice(i, i + tamanho));
+    return lotes;
+  }
+
+  function renderizarLotes() {
+    resumo.lotes.innerHTML = '';
+    const lotes = lotesAtuais();
+    lotes.forEach((lote, n) => {
+      const li = document.createElement('li');
+      const inicio = n * (Number(resumo.tamanhoLote.value) || 8) + 1;
+      const rotulo = document.createElement('span');
+      rotulo.textContent = `Parte ${n + 1} de ${lotes.length} (buscas ${inicio}–${inicio + lote.length - 1})`;
+
+      const abrir = document.createElement('button');
+      abrir.type = 'button';
+      abrir.textContent = 'Copiar e abrir o Claude';
+      abrir.addEventListener('click', () => {
+        const prompt = montarPrompt(lote);
+        copiarTexto(prompt);
+        window.open(`https://claude.ai/new?q=${encodeURIComponent(prompt)}`, '_blank', 'noopener');
+      });
+
+      const copiar = document.createElement('button');
+      copiar.type = 'button';
+      copiar.className = 'secundario';
+      copiar.textContent = 'Só copiar';
+      copiar.addEventListener('click', () => {
+        copiarTexto(montarPrompt(lote));
+        copiar.textContent = 'Copiado!';
+        setTimeout(() => { copiar.textContent = 'Só copiar'; }, 1500);
+      });
+
+      li.append(rotulo, abrir, copiar);
+      const importadas = lote.filter((b) => resumos.some((r) => r.estado === 'ok' && chave(r.consulta) === chave(b.consulta))).length;
+      if (importadas) {
+        const feito = document.createElement('span');
+        feito.className = 'feito';
+        feito.textContent = importadas === lote.length ? '✓ importada' : `${importadas} de ${lote.length} importadas`;
+        li.appendChild(feito);
+      }
+      resumo.lotes.appendChild(li);
+    });
+    if (!lotes.length) {
+      const li = document.createElement('li');
+      li.className = 'vazio';
+      li.textContent = 'Gere as buscas acima para montar o texto para o Claude.';
+      resumo.lotes.appendChild(li);
+    }
+  }
+
+  // ----- Importação da resposta -----
+
+  function lerCsv(texto, sep) {
+    const linhas = [];
+    let linha = [];
+    let valor = '';
+    let aspas = false;
+    for (let i = 0; i < texto.length; i++) {
+      const c = texto[i];
+      if (aspas) {
+        if (c === '"' && texto[i + 1] === '"') { valor += '"'; i++; }
+        else if (c === '"') aspas = false;
+        else valor += c;
+      } else if (c === '"' && valor.trim() === '') { aspas = true; valor = ''; }
+      else if (c === sep) { linha.push(valor); valor = ''; }
+      else if (c === '\n') { linha.push(valor); linhas.push(linha); linha = []; valor = ''; }
+      else if (c !== '\r') valor += c;
+    }
+    linha.push(valor);
+    linhas.push(linha);
+    return linhas;
+  }
+
+  function lerTabelaMarkdown(texto) {
+    return texto.split('\n')
+      .filter((l) => l.trim().startsWith('|') && !/^\s*\|?[\s:|-]+\|?\s*$/.test(l))
+      .map((l) => l.trim().replace(/^\||\|$/g, '').split('|'));
+  }
+
+  const normalizar = (t) => String(t).normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z]/g, '');
+  const VAZIOS = new Set(['', '-', '—', 'n/a', 'na', 'null', 'nao identificado', 'não identificado', 'nao encontrado', 'não encontrado']);
+  const limpar = (v) => {
+    const t = String(v ?? '').trim().replace(/^<(.*)>$/, '$1');
+    return VAZIOS.has(t.toLowerCase()) ? null : t;
+  };
+
+  function interpretarResposta(texto) {
+    const blocos = [...texto.matchAll(/```[^\n]*\n([\s\S]*?)```/g)].map((m) => m[1]);
+    const conteudo = (blocos.length ? blocos.join('\n') : texto).replace(/\r/g, '');
+    const linhasNaoVazias = conteudo.split('\n').filter((l) => l.trim());
+    const ehMarkdown = linhasNaoVazias.filter((l) => l.trim().startsWith('|')).length > linhasNaoVazias.length / 2;
+    const linhaCabecalho = linhasNaoVazias.find((l) => normalizar(l).includes('consulta') && normalizar(l).includes('nome')) || '';
+    const sep = linhaCabecalho.includes(';') ? ';' : linhaCabecalho.includes('\t') ? '\t' : ',';
+    const linhas = ehMarkdown ? lerTabelaMarkdown(conteudo) : lerCsv(conteudo, sep);
+
+    let colunas = null;
+    const itens = [];
+    for (const linha of linhas) {
+      const nomes = linha.map(normalizar);
+      if (nomes.includes('consulta') && nomes.includes('nome')) {
+        colunas = Object.fromEntries(CABECALHO.map((c) => [c, nomes.indexOf(c)]));
+        continue;
+      }
+      if (!colunas) continue;
+      const get = (c) => (colunas[c] >= 0 ? limpar(linha[colunas[c]]) : null);
+      const nome = get('nome');
+      if (!nome) continue;
+      itens.push({
+        consulta: get('consulta') || '(sem consulta)',
+        nome,
+        responsavel: get('responsavel'),
+        area: get('area'),
+        website: get('website'),
+        resumo: get('resumo'),
+        fonte: get('fonte'),
+      });
+    }
+    return { itens, achouCabecalho: Boolean(colunas) };
+  }
+
+  function importarResposta() {
+    const { itens, achouCabecalho } = interpretarResposta(resumo.resposta.value);
+    if (!achouCabecalho) {
+      resumo.statusImportacao.textContent = `Não encontrei a tabela. A resposta precisa ter o cabeçalho: ${CABECALHO.join(';')}`;
+      return;
+    }
+    let novos = 0;
+    const tocados = new Set();
+    itens.forEach(({ consulta, ...item }) => {
+      const r = obterResumo(consulta);
+      r.estado = 'ok';
+      tocados.add(r);
+      if (!r.itens.some((x) => chave(x.nome) === chave(item.nome))) {
+        r.itens.push(item);
+        novos++;
+      }
+    });
+    tocados.forEach(renderizarBloco);
+    atualizarResumos();
+    resumo.statusImportacao.textContent = `${novos} startup(s)/projeto(s) importado(s)` +
+      (itens.length > novos ? ` (${itens.length - novos} repetido(s) ignorado(s))` : '') + '.';
+    if (novos) resumo.resposta.value = '';
+  }
+
+  // ----- Modo automático (servidor local, opcional) -----
+
+  async function verificarServidor() {
+    if (location.protocol === 'file:') return;
+    try {
+      const { busca, ia } = await (await fetch('/api/status')).json();
+      resumo.modoAuto.hidden = false;
+      const desc = (s) => `${s.provedor}${s.ok ? ' ✓' : ` ✗ (${s.detalhe})`}`;
+      resumo.status.textContent = `Busca: ${desc(busca)} · IA: ${desc(ia)}`;
+      if (!busca.ok || !ia.ok) {
+        resumo.status.textContent += ' — corrija o item marcado com ✗ e recarregue a página.';
+      }
+    } catch { /* sem servidor: só o modo com o Claude no chat */ }
   }
 
   async function processar(r) {
@@ -344,39 +568,34 @@
       r.erro = e.message;
     }
     renderizarBloco(r);
-    atualizarContadorResumos();
+    atualizarResumos();
   }
 
   async function resumirTodas() {
     if (resumindo || !buscas.length) return;
-    if (buscas.length > 10 && !confirm(`Gerar resumos para ${buscas.length} buscas? Cada busca consome créditos das APIs.`)) return;
+    if (buscas.length > 10 && !confirm(`Gerar resumos para ${buscas.length} buscas?`)) return;
     resumindo = true;
     resumo.botao.disabled = true;
     resumo.botao.textContent = 'Resumindo…';
-    resumo.lista.innerHTML = '';
-    resumos = buscas.map((b) => {
-      const div = document.createElement('div');
-      div.className = 'bloco-resumo';
-      resumo.lista.appendChild(div);
-      const r = { consulta: b.consulta, estado: 'aguardando', itens: [], el: div };
+    const fila = buscas.map((b) => {
+      const r = obterResumo(b.consulta);
+      r.estado = 'aguardando';
       renderizarBloco(r);
       return r;
     });
-    atualizarContadorResumos();
-
-    const fila = resumos.slice();
     await Promise.all(Array.from({ length: CONCORRENCIA }, async () => {
       while (fila.length) await processar(fila.shift());
     }));
-
     resumindo = false;
     resumo.botao.disabled = false;
     resumo.botao.textContent = 'Buscar e resumir';
   }
 
+  // ----- Exportar / limpar / carregar -----
+
   function exportarResumos() {
     const esc = (s) => `"${String(s ?? '').replace(/"/g, '""')}"`;
-    const linhas = [['consulta', 'nome', 'responsavel', 'area', 'website', 'resumo', 'fonte']];
+    const linhas = [CABECALHO];
     resumos.forEach((r) => (r.itens || []).forEach((it) => {
       linhas.push([r.consulta, it.nome, it.responsavel, it.area, it.website, it.resumo, it.fonte]);
     }));
@@ -388,8 +607,29 @@
     URL.revokeObjectURL(a.href);
   }
 
-  resumo.botao.addEventListener('click', resumirTodas);
+  function limparResumos() {
+    if (resumos.length && !confirm('Apagar todos os resumos importados?')) return;
+    resumos = [];
+    resumo.lista.innerHTML = '';
+    resumo.statusImportacao.textContent = '';
+    atualizarResumos();
+  }
+
+  function carregarResumos() {
+    try {
+      const salvos = JSON.parse(localStorage.getItem(CHAVE_RESUMOS) || '[]');
+      resumos = salvos.map((r) => ({ consulta: r.consulta, itens: r.itens || [], estado: 'ok' }));
+    } catch { resumos = []; }
+    resumos.forEach(renderizarBloco);
+    atualizarResumos();
+  }
+
+  resumo.importar.addEventListener('click', importarResposta);
   resumo.exportar.addEventListener('click', exportarResumos);
+  resumo.limpar.addEventListener('click', limparResumos);
+  resumo.tamanhoLote.addEventListener('change', renderizarLotes);
+  resumo.botao.addEventListener('click', resumirTodas);
+  carregarResumos();
   verificarServidor();
 
   // ---------- Persistência ----------
