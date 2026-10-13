@@ -1,0 +1,15 @@
+# Configuração mínima do SearXNG para o Mapa Startups.
+use_default_settings: true
+
+server:
+  # Qualquer texto aleatório serve; o SearXNG não inicia com o valor padrão.
+  secret_key: "mapa-startups-troque-esta-chave"
+  limiter: false
+  image_proxy: false
+
+search:
+  safe_search: 0
+  # O formato JSON é necessário para o Mapa Startups ler os resultados.
+  formats:
+    - html
+    - json

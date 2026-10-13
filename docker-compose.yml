@@ -1,0 +1,23 @@
+# Serviços gratuitos e locais usados pelo Mapa Startups.
+#   docker compose up -d                    -> só o SearXNG (busca)
+#   docker compose --profile ollama up -d   -> SearXNG + Ollama (IA) em contêiner
+services:
+  searxng:
+    image: searxng/searxng:latest
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./searxng/settings.yml:/etc/searxng/settings.yml:ro
+    restart: unless-stopped
+
+  ollama:
+    image: ollama/ollama:latest
+    profiles: ["ollama"]
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama:/root/.ollama
+    restart: unless-stopped
+
+volumes:
+  ollama:

@@ -249,14 +249,11 @@
       return;
     }
     try {
-      const st = await (await fetch('/api/status')).json();
-      if (!st.claude) {
-        resumo.status.textContent = 'Servidor sem ANTHROPIC_API_KEY configurada: não é possível gerar resumos.';
-        resumo.botao.disabled = true;
-      } else {
-        resumo.status.textContent = st.google
-          ? 'Resultados do Google (via Serper.dev), resumidos pelo Claude.'
-          : 'SERPER_API_KEY não configurada: a pesquisa será feita pelo próprio Claude, não pelo Google.';
+      const { busca, ia } = await (await fetch('/api/status')).json();
+      const desc = (s) => `${s.provedor}${s.ok ? ' ✓' : ` ✗ (${s.detalhe})`}`;
+      resumo.status.textContent = `Busca: ${desc(busca)} · IA: ${desc(ia)}`;
+      if (!busca.ok || !ia.ok) {
+        resumo.status.textContent += ' — corrija o item marcado com ✗ e recarregue a página.';
       }
     } catch {
       resumo.botao.disabled = true;
