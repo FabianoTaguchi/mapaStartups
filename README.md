@@ -21,18 +21,24 @@ Não precisa instalar nada: abra `index.html` no navegador. Os resumos são feit
    - *Cada termo separado* – uma busca por termo.
    - *Combinações de K termos* – todas as combinações de tamanho K.
    - *Todas as combinações* – todos os subconjuntos (limitado a 200 buscas).
-3. **Filtros** – período (data inicial e final, digitadas manualmente) e sites a consultar (um por linha; vários sites viram `(site:a OR site:b)`).
-4. **Resultados** – abra cada busca no Google, abra todas em abas, copie os links ou exporte em CSV.
-5. **Resumos com o Claude**
-   1. As buscas são divididas em partes (8 por mensagem, ajustável). Em cada parte, clique em *Copiar e abrir o Claude*: o texto com as instruções e as buscas é copiado e o claude.ai abre numa nova aba. Se o texto não vier preenchido, cole com Ctrl+V. Deixe a pesquisa na web ativada.
-   2. Quando o Claude terminar, clique no botão *Copiar* embaixo da resposta dele (uma tabela CSV com consulta, nome, responsável, área, website, resumo e fonte).
-   3. Volte para a aba do Mapa Startups: a resposta é importada sozinha (o navegador pede permissão para ler a área de transferência na primeira vez). Se não for, clique em *Colar e importar*, ou cole no campo e clique em *Importar texto do campo*. Os resumos aparecem em cartões, ficam salvos no navegador e podem ser exportados em CSV.
+3. **Filtros** – região da pesquisa (entra no fim de cada consulta e faz o buscador priorizar resultados daquele lugar), período (data inicial e final, digitadas manualmente) e sites a consultar (um por linha; vários sites viram `(site:a OR site:b)`).
+4. **Buscas geradas** – abra cada busca no Google, abra todas em abas, copie os links ou exporte em CSV.
+5. **Busca automática** – aparece quando o servidor está rodando com os provedores configurados.
+6. **Resumos encontrados** – lista dos resumos gerados.
+
+### Modo manual (seção oculta)
+
+A seção *Resumos com o Claude* existe no código, mas fica oculta por padrão (`hidden`), já que o modo automático faz o mesmo trabalho:
+
+1. As buscas são divididas em partes (8 por mensagem, ajustável). Em cada parte, clique em *Copiar e abrir o Claude*: o texto com as instruções e as buscas é copiado e o claude.ai abre numa nova aba. Se o texto não vier preenchido, cole com Ctrl+V. Deixe a pesquisa na web ativada.
+2. Quando o Claude terminar, clique no botão *Copiar* embaixo da resposta dele (uma tabela CSV com consulta, nome, responsável, área, website, resumo e fonte).
+3. Volte para a aba do Mapa Startups: a resposta é importada sozinha (o navegador pede permissão para ler a área de transferência na primeira vez). Se não for, clique em *Colar e importar*, ou cole no campo e clique em *Importar texto do campo*. Os resumos aparecem em cartões, ficam salvos no navegador e podem ser exportados em CSV.
 
 O estado (termos, filtros e resumos importados) fica salvo no `localStorage` do navegador.
 
 ## Modo automático (opcional, servidor local)
 
-O projeto também tem um servidor (`npm start`) que faz as buscas e os resumos sozinho. Quando ele está rodando e a página é aberta por http://localhost:3000, aparece a opção *Modo automático* na seção 5. Os provedores são escolhidos no `.env`:
+O projeto também tem um servidor (`npm start`) que faz as buscas e os resumos sozinho. Quando ele está rodando e a página é aberta por http://localhost:3000, aparece a seção *5. Busca automática*. Os provedores são escolhidos no `.env`:
 
 ### Gratuito: SearXNG + Ollama
 
@@ -63,7 +69,7 @@ cp .env.example .env      # no Windows: copy .env.example .env
 npm start                 # abra http://localhost:3000
 ```
 
-Ao iniciar, o terminal mostra se a busca e a IA foram encontradas. A mesma informação aparece na seção 5 da página.
+Ao iniciar, o terminal mostra se a busca e a IA foram encontradas. A mesma informação aparece na seção 5 da página (*Busca automática*).
 
 Dicas:
 - O SearXNG às vezes é bloqueado temporariamente pelo Google; os resultados continuam vindo dos outros buscadores.

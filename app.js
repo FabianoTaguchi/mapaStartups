@@ -764,7 +764,7 @@
     XLSX.writeFile(livros, `mapa-startups-${new Date().toISOString().slice(0, 10)}.xlsx`);
   }
 
-  // Zera a seção 5 (resumos, partes montadas para o Claude e campos de importação)
+  // Zera os resumos (lista, partes montadas para o Claude e campos de importação)
   // e o que estava salvo no navegador. A seção 4 é refeita logo em seguida com as
   // buscas novas.
   function limparSecoes() {

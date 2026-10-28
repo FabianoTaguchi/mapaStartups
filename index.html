@@ -27,7 +27,7 @@
     <section class="card">
       <h2>2. Como combinar</h2>
       <div class="modos">
-        <label><input type="radio" name="modo" value="todos" checked> <strong>Todos juntos (E)</strong><span>Uma busca contendo todos os termos</span></label>
+        <label><input type="radio" name="modo" value="todos" checked> <strong>Todos juntos (E)</strong><span>Uma busca com todos os termos</span></label>
         <label><input type="radio" name="modo" value="ou"> <strong>Qualquer um (OU)</strong><span>Uma busca com os termos ligados por OR</span></label>
         <label><input type="radio" name="modo" value="separados"> <strong>Cada termo separado</strong><span>Uma busca para cada termo</span></label>
         <label><input type="radio" name="modo" value="k"> <strong>Combinações de
@@ -69,9 +69,10 @@
       <p id="vazio" class="vazio">Adicione ao menos um termo para gerar as buscas.</p>
     </section>
 
-    <section class="card">
+    <!-- Seção 5 (modo manual) oculta: o fluxo automático a substitui. -->
+    <section class="card" hidden>
       <div class="row between">
-        <h2>5. Resumos com o Claude <span id="contador-resumos" class="badge">0</span></h2>
+        <h2>Resumos com o Claude <span id="contador-resumos" class="badge">0</span></h2>
         <div class="row">
           <button type="button" id="exportar-resumos" class="secundario" disabled>Exportar resumos CSV</button>
           <button type="button" id="limpar-resumos" class="link">Limpar resumos</button>
@@ -107,7 +108,7 @@
     </section>
 
     <section class="card destaque" id="modo-automatico" hidden>
-      <h2>6. Busca automática</h2>
+      <h2>5. Busca automática</h2>
       <p class="vazio">Busca no Google e resume com o Claude sem sair da página.</p>
       <div class="row">
         <label class="inline">Resultados por busca
@@ -124,7 +125,7 @@
     </section>
 
     <section class="card">
-      <h2>7. Resumos encontrados</h2>
+      <h2>6. Resumos encontrados</h2>
       <div id="resumos"></div>
     </section>
   </main>
