@@ -101,13 +101,11 @@
         <label class="check"><input type="checkbox" id="auto-importar" checked> Importar sozinho ao voltar para esta aba</label>
       </div>
       <p id="status-importacao" class="vazio"></p>
-
-      <div id="resumos"></div>
     </section>
 
     <section class="card destaque" id="modo-automatico" hidden>
       <h2>6. Busca automática</h2>
-      <p class="vazio">Busca no Google e resume com o Claude sem sair da página. Os resumos encontrados aparecem na seção 5.</p>
+      <p class="vazio">Busca no Google e resume com o Claude sem sair da página.</p>
       <div class="row">
         <label class="inline">Resultados por busca
           <select id="max-resultados">
@@ -120,6 +118,11 @@
         <button type="button" id="resumir">Buscar e resumir</button>
       </div>
       <p id="status-servidor" class="vazio"></p>
+    </section>
+
+    <section class="card">
+      <h2>7. Resumos encontrados</h2>
+      <div id="resumos"></div>
     </section>
   </main>
 
