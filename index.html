@@ -120,8 +120,8 @@
 
       <ol class="passos">
         <li>Clique em <strong>Copiar e abrir o Claude</strong> em uma das partes abaixo. Se o texto não aparecer já preenchido no chat, cole com Ctrl+V. Confira se a <em>pesquisa na web</em> está ativada.</li>
-        <li>Quando o Claude terminar, copie a resposta inteira dele.</li>
-        <li>Cole a resposta no campo abaixo e clique em <strong>Importar resposta</strong>. Repita para as outras partes.</li>
+        <li>Quando o Claude terminar, clique no botão <strong>Copiar</strong> embaixo da resposta dele.</li>
+        <li>Volte para esta aba: a resposta é importada sozinha. (Se não for, clique em <strong>Colar e importar</strong>.) Repita para as outras partes.</li>
       </ol>
 
       <div class="row">
@@ -139,8 +139,11 @@
       <label for="resposta-claude">Resposta do Claude</label>
       <textarea id="resposta-claude" rows="6" placeholder="Cole aqui a resposta do Claude (pode colar mais de uma parte de uma vez)"></textarea>
       <div class="row">
-        <button type="button" id="importar-resposta">Importar resposta</button>
-        <span id="status-importacao" class="vazio"></span>
+        <button type="button" id="colar-importar">Colar e importar</button>
+        <button type="button" id="importar-resposta" class="secundario">Importar texto do campo</button>
+        <label class="check"><input type="checkbox" id="auto-importar" checked> Importar sozinho ao voltar para esta aba</label>
+      </div>
+      <p id="status-importacao" class="vazio"></p>
       </div>
 
       <details id="modo-automatico" hidden>

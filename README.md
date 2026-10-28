@@ -17,8 +17,8 @@ Não precisa instalar nada: abra `index.html` no navegador. Os resumos são feit
 4. **Resultados** – abra cada busca no Google, abra todas em abas, copie os links ou exporte em CSV.
 5. **Resumos com o Claude**
    1. As buscas são divididas em partes (8 por mensagem, ajustável). Em cada parte, clique em *Copiar e abrir o Claude*: o texto com as instruções e as buscas é copiado e o claude.ai abre numa nova aba. Se o texto não vier preenchido, cole com Ctrl+V. Deixe a pesquisa na web ativada.
-   2. Copie a resposta do Claude (uma tabela CSV com consulta, nome, responsável, área, website, resumo e fonte).
-   3. Cole no campo *Resposta do Claude* e clique em *Importar resposta*. Os resumos aparecem em cartões, ficam salvos no navegador e podem ser exportados em CSV.
+   2. Quando o Claude terminar, clique no botão *Copiar* embaixo da resposta dele (uma tabela CSV com consulta, nome, responsável, área, website, resumo e fonte).
+   3. Volte para a aba do Mapa Startups: a resposta é importada sozinha (o navegador pede permissão para ler a área de transferência na primeira vez). Se não for, clique em *Colar e importar*, ou cole no campo e clique em *Importar texto do campo*. Os resumos aparecem em cartões, ficam salvos no navegador e podem ser exportados em CSV.
 
 O estado (termos, filtros e resumos importados) fica salvo no `localStorage` do navegador.
 

@@ -245,6 +245,8 @@
     lotes: $('#lotes'),
     resposta: $('#resposta-claude'),
     importar: $('#importar-resposta'),
+    colarImportar: $('#colar-importar'),
+    autoImportar: $('#auto-importar'),
     statusImportacao: $('#status-importacao'),
     modoAuto: $('#modo-automatico'),
     botao: $('#resumir'),
@@ -253,6 +255,9 @@
   };
   let resumos = [];
   let resumindo = false;
+  let ultimoPromptCopiado = '';
+  let ultimoTextoImportado = '';
+  let aguardandoResposta = false;
 
   // Compara buscas ignorando aspas, espaços extras e maiúsculas.
   const chave = (t) => String(t || '').replace(/["“”]/g, '').replace(/\s+/g, ' ').trim().toLowerCase();
@@ -405,6 +410,8 @@
       abrir.textContent = 'Copiar e abrir o Claude';
       abrir.addEventListener('click', () => {
         const prompt = montarPrompt(lote);
+        ultimoPromptCopiado = prompt;
+        aguardandoResposta = true;
         copiarTexto(prompt);
         window.open(`https://claude.ai/new?q=${encodeURIComponent(prompt)}`, '_blank', 'noopener');
       });
@@ -414,7 +421,9 @@
       copiar.className = 'secundario';
       copiar.textContent = 'Só copiar';
       copiar.addEventListener('click', () => {
-        copiarTexto(montarPrompt(lote));
+        ultimoPromptCopiado = montarPrompt(lote);
+        aguardandoResposta = true;
+        copiarTexto(ultimoPromptCopiado);
         copiar.textContent = 'Copiado!';
         setTimeout(() => { copiar.textContent = 'Só copiar'; }, 1500);
       });
@@ -508,6 +517,7 @@
   }
 
   function importarResposta() {
+    ultimoTextoImportado = resumo.resposta.value;
     const { itens, achouCabecalho } = interpretarResposta(resumo.resposta.value);
     if (!achouCabecalho) {
       resumo.statusImportacao.textContent = `Não encontrei a tabela. A resposta precisa ter o cabeçalho: ${CABECALHO.join(';')}`;
@@ -529,6 +539,38 @@
     resumo.statusImportacao.textContent = `${novos} startup(s)/projeto(s) importado(s)` +
       (itens.length > novos ? ` (${itens.length - novos} repetido(s) ignorado(s))` : '') + '.';
     if (novos) resumo.resposta.value = '';
+  }
+
+  // ----- Importação pela área de transferência -----
+  // O navegador pede permissão na primeira vez para a página ler o que foi copiado.
+
+  async function lerAreaTransferencia() {
+    if (!navigator.clipboard || !navigator.clipboard.readText) return null;
+    try { return await navigator.clipboard.readText(); } catch { return null; }
+  }
+
+  async function colarEImportar() {
+    const texto = await lerAreaTransferencia();
+    if (texto === null) {
+      resumo.statusImportacao.textContent = 'O navegador não deixou ler a área de transferência. Cole a resposta no campo com Ctrl+V e clique em "Importar texto do campo".';
+      resumo.resposta.focus();
+      return;
+    }
+    if (texto === ultimoPromptCopiado) {
+      resumo.statusImportacao.textContent = 'A área de transferência ainda tem o texto enviado ao Claude. Copie a resposta dele primeiro.';
+      return;
+    }
+    resumo.resposta.value = texto;
+    importarResposta();
+  }
+
+  async function importarAoVoltar() {
+    if (!resumo.autoImportar.checked || !aguardandoResposta || document.visibilityState !== 'visible') return;
+    const texto = await lerAreaTransferencia();
+    if (!texto || texto === ultimoPromptCopiado || texto === ultimoTextoImportado) return;
+    if (!interpretarResposta(texto).itens.length) return;
+    resumo.resposta.value = texto;
+    importarResposta();
   }
 
   // ----- Modo automático (servidor local, opcional) -----
@@ -625,6 +667,9 @@
   }
 
   resumo.importar.addEventListener('click', importarResposta);
+  resumo.colarImportar.addEventListener('click', colarEImportar);
+  window.addEventListener('focus', importarAoVoltar);
+  document.addEventListener('visibilitychange', importarAoVoltar);
   resumo.exportar.addEventListener('click', exportarResumos);
   resumo.limpar.addEventListener('click', limparResumos);
   resumo.tamanhoLote.addEventListener('change', renderizarLotes);
