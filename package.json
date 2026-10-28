@@ -4,8 +4,8 @@
   "description": "Busca no Google por termos e resume startups/projetos",
   "main": "app.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "node --env-file-if-exists=.env server.js"
+    "start": "node server.js",
+    "configurar": "node configurar.js"
   },
   "repository": {
     "type": "git",

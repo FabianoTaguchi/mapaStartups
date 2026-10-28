@@ -2,6 +2,14 @@
 
 Interface web para montar buscas a partir de vários termos, combinados ou não, e gerar um mini-resumo de cada startup/projeto encontrado (nome, responsável, área de atuação e website).
 
+## Configuração rápida (Windows)
+
+1. Instale o [Node.js](https://nodejs.org) (versão LTS).
+2. Dê dois cliques em **`configurar.bat`**. O assistente instala as dependências, pergunta como você quer gerar os resumos (Claude no chat, API do Claude ou gratuito com SearXNG + Ollama), pede e testa as chaves quando necessário, sobe o SearXNG/Ollama e salva tudo no `.env`.
+3. Depois, para usar, dê dois cliques em **`iniciar.bat`**: ele abre a página no navegador.
+
+Em outros sistemas: `npm run configurar` e `npm start`.
+
 ## Como usar (padrão: Claude no chat)
 
 Não precisa instalar nada: abra `index.html` no navegador. Os resumos são feitos pelo Claude no chat (claude.ai), usando a sua assinatura.

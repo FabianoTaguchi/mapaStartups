@@ -1,9 +1,11 @@
 // Servidor do Mapa Startups: serve a interface e expõe /api/resumir, que
 // busca a consulta (SearXNG ou Serper/Google) e usa uma IA (Ollama local ou
 // Claude) para extrair um mini-resumo de cada startup/projeto encontrado.
+import './lib/env.js';
 import http from 'node:http';
 import fs from 'node:fs/promises';
 import path from 'node:path';
+import { spawn } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { config } from './lib/config.js';
 import { buscar, statusBusca } from './lib/busca.js';
@@ -72,8 +74,27 @@ const servidor = http.createServer(async (req, res) => {
 // O Ollama local pode levar minutos por busca: não derrubar a conexão antes.
 servidor.requestTimeout = 0;
 
+function abrirNoNavegador(url) {
+  const [cmd, args] = process.platform === 'win32' ? ['cmd', ['/c', 'start', '', url]]
+    : process.platform === 'darwin' ? ['open', [url]] : ['xdg-open', [url]];
+  try {
+    spawn(cmd, args, { detached: true, stdio: 'ignore' }).on('error', () => {}).unref();
+  } catch { /* sem navegador disponível */ }
+}
+
+servidor.on('error', (erro) => {
+  if (erro.code === 'EADDRINUSE') {
+    console.error(`A porta ${config.porta} já está em uso: o Mapa Startups provavelmente já está aberto em outra janela.`);
+    if (process.argv.includes('--abrir')) abrirNoNavegador(`http://localhost:${config.porta}`);
+  } else {
+    console.error(erro);
+  }
+  process.exit(1);
+});
+
 servidor.listen(config.porta, async () => {
   console.log(`Mapa Startups em http://localhost:${config.porta}`);
+  if (process.argv.includes('--abrir')) abrirNoNavegador(`http://localhost:${config.porta}`);
   const [busca, ia] = await Promise.all([statusBusca(), statusIa()]);
   for (const [rotulo, s] of [['Busca', busca], ['IA', ia]]) {
     console.log(`${rotulo}: ${s.provedor} — ${s.ok ? 'ok' : `PROBLEMA: ${s.detalhe}`}`);
