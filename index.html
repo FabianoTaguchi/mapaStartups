@@ -40,57 +40,14 @@
     <section class="card">
       <h2>3. Filtros (opcionais)</h2>
       <div class="grid">
-        <label>Termo fixo (incluído em todas as buscas)
-          <input type="text" id="fixo" placeholder="ex.: startup">
+        <label>Período – data inicial
+          <input type="date" id="data-inicio">
         </label>
-        <label>Excluir termos (separados por vírgula)
-          <input type="text" id="excluir" placeholder="ex.: vagas, curso">
+        <label>Período – data final
+          <input type="date" id="data-fim">
         </label>
-        <label>Restringir a site/domínio
-          <input type="text" id="site" placeholder="ex.: .com.br ou linkedin.com">
-        </label>
-        <label>Tipo de arquivo
-          <select id="filetype">
-            <option value="">Qualquer</option>
-            <option value="pdf">PDF</option>
-            <option value="doc">DOC/DOCX</option>
-            <option value="xls">XLS/XLSX</option>
-            <option value="ppt">PPT/PPTX</option>
-            <option value="csv">CSV</option>
-          </select>
-        </label>
-        <label>Período
-          <select id="periodo">
-            <option value="">Qualquer data</option>
-            <option value="qdr:d">Últimas 24 horas</option>
-            <option value="qdr:w">Última semana</option>
-            <option value="qdr:m">Último mês</option>
-            <option value="qdr:y">Último ano</option>
-          </select>
-        </label>
-        <label>Idioma
-          <select id="idioma">
-            <option value="">Qualquer</option>
-            <option value="lang_pt" selected>Português</option>
-            <option value="lang_en">Inglês</option>
-            <option value="lang_es">Espanhol</option>
-          </select>
-        </label>
-        <label>País
-          <select id="pais">
-            <option value="">Qualquer</option>
-            <option value="countryBR" selected>Brasil</option>
-            <option value="countryPT">Portugal</option>
-            <option value="countryUS">Estados Unidos</option>
-          </select>
-        </label>
-        <label>Onde procurar o termo
-          <select id="onde">
-            <option value="">Em qualquer lugar da página</option>
-            <option value="intitle">No título (intitle:)</option>
-            <option value="inurl">No endereço (inurl:)</option>
-            <option value="intext">No texto (intext:)</option>
-          </select>
+        <label class="largo">Sites a consultar (um por linha ou separados por vírgula)
+          <textarea id="sites" rows="3" placeholder="ex.: startupbase.com.br&#10;linkedin.com"></textarea>
         </label>
       </div>
     </section>

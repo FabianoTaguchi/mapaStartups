@@ -11,14 +11,9 @@
     limpar: $('#limpar-termos'),
     aspas: $('#aspas'),
     k: $('#k'),
-    fixo: $('#fixo'),
-    excluir: $('#excluir'),
-    site: $('#site'),
-    filetype: $('#filetype'),
-    periodo: $('#periodo'),
-    idioma: $('#idioma'),
-    pais: $('#pais'),
-    onde: $('#onde'),
+    dataInicio: $('#data-inicio'),
+    dataFim: $('#data-fim'),
+    sites: $('#sites'),
     contador: $('#contador'),
     aviso: $('#aviso'),
     resultados: $('#resultados'),
@@ -118,7 +113,6 @@
   function formatarTermo(t) {
     let s = t;
     if (el.aspas.checked && /\s/.test(s) && !/^".*"$/.test(s)) s = `"${s}"`;
-    if (el.onde.value) s = `${el.onde.value}:${s}`;
     return s;
   }
 
@@ -131,25 +125,42 @@
       partes.push(...formatados);
     }
 
-    const fixo = el.fixo.value.trim();
-    if (fixo) partes.unshift(el.aspas.checked && /\s/.test(fixo) ? `"${fixo}"` : fixo);
-
-    el.excluir.value.split(',').map((t) => t.trim()).filter(Boolean).forEach((t) => {
-      partes.push(/\s/.test(t) ? `-"${t}"` : `-${t}`);
-    });
-
-    const site = el.site.value.trim().replace(/^https?:\/\//, '').replace(/\/$/, '');
-    if (site) partes.push(`site:${site}`);
-    if (el.filetype.value) partes.push(`filetype:${el.filetype.value}`);
+    const sites = listarSites();
+    if (sites.length === 1) partes.push(`site:${sites[0]}`);
+    else if (sites.length > 1) partes.push(`(${sites.map((s) => `site:${s}`).join(' OR ')})`);
 
     return partes.join(' ');
   }
 
+  function listarSites() {
+    const sites = el.sites.value.split(/[,;\s]+/)
+      .map((s) => s.trim().replace(/^https?:\/\//, '').replace(/^www\./, '').replace(/\/.*$/, ''))
+      .filter(Boolean);
+    return [...new Set(sites)];
+  }
+
+  function periodo() {
+    return { dataInicio: el.dataInicio.value, dataFim: el.dataFim.value };
+  }
+
+  // Formato de período personalizado do Google: cdr:1,cd_min:M/D/AAAA,cd_max:M/D/AAAA
+  function periodoTbs() {
+    const formatar = (iso) => {
+      const [a, m, d] = iso.split('-');
+      return `${Number(m)}/${Number(d)}/${a}`;
+    };
+    const { dataInicio, dataFim } = periodo();
+    if (!dataInicio && !dataFim) return '';
+    let tbs = 'cdr:1';
+    if (dataInicio) tbs += `,cd_min:${formatar(dataInicio)}`;
+    if (dataFim) tbs += `,cd_max:${formatar(dataFim)}`;
+    return tbs;
+  }
+
   function montarUrl(consulta) {
     const p = new URLSearchParams({ q: consulta });
-    if (el.periodo.value) p.set('tbs', el.periodo.value);
-    if (el.idioma.value) p.set('lr', el.idioma.value);
-    if (el.pais.value) p.set('cr', el.pais.value);
+    const tbs = periodoTbs();
+    if (tbs) p.set('tbs', tbs);
     return `https://www.google.com/search?${p.toString()}`;
   }
 
@@ -348,15 +359,17 @@
 
   // ----- Prompt para o Claude -----
 
-  function textoSelecionado(select) {
-    return select.value ? select.options[select.selectedIndex].text : '';
+  function dataBr(iso) {
+    const [a, m, d] = iso.split('-');
+    return `${d}/${m}/${a}`;
   }
 
   function montarPrompt(lote) {
     const preferencias = [];
-    if (el.idioma.value) preferencias.push(`páginas em ${textoSelecionado(el.idioma).toLowerCase()}`);
-    if (el.pais.value) preferencias.push(`resultados do país: ${textoSelecionado(el.pais)}`);
-    if (el.periodo.value) preferencias.push(`publicados no período: ${textoSelecionado(el.periodo).toLowerCase()}`);
+    const { dataInicio, dataFim } = periodo();
+    if (dataInicio && dataFim) preferencias.push(`páginas publicadas entre ${dataBr(dataInicio)} e ${dataBr(dataFim)}`);
+    else if (dataInicio) preferencias.push(`páginas publicadas a partir de ${dataBr(dataInicio)}`);
+    else if (dataFim) preferencias.push(`páginas publicadas até ${dataBr(dataFim)}`);
 
     return [
       'Pesquise na web cada uma das buscas abaixo, como se fossem feitas no Google.',
@@ -598,7 +611,7 @@
         body: JSON.stringify({
           consulta: r.consulta,
           maxResultados: Number(resumo.maxResultados.value),
-          filtros: { periodo: el.periodo.value, idioma: el.idioma.value, pais: el.pais.value },
+          filtros: periodo(),
         }),
       });
       const dados = await resp.json();
@@ -679,7 +692,7 @@
 
   // ---------- Persistência ----------
 
-  const camposPersistidos = ['fixo', 'excluir', 'site', 'filetype', 'periodo', 'idioma', 'pais', 'onde', 'k'];
+  const camposPersistidos = ['dataInicio', 'dataFim', 'sites', 'k'];
 
   function salvarEstado() {
     try {
@@ -735,13 +748,20 @@
     document.querySelector('input[name=modo][value=k]').checked = true;
     atualizar();
   });
-  [el.aspas, el.fixo, el.excluir, el.site, el.filetype, el.periodo, el.idioma, el.pais, el.onde]
+  [el.aspas, el.dataInicio, el.dataFim, el.sites]
     .forEach((c) => c.addEventListener('input', () => { renderizarResultados(); salvarEstado(); }));
+  // Impede escolher data final anterior à inicial (e vice-versa).
+  function limitarDatas() {
+    el.dataFim.min = el.dataInicio.value;
+    el.dataInicio.max = el.dataFim.value;
+  }
+  [el.dataInicio, el.dataFim].forEach((c) => c.addEventListener('input', limitarDatas));
 
   el.abrirTodas.addEventListener('click', abrirTodas);
   el.copiar.addEventListener('click', copiarLinks);
   el.exportar.addEventListener('click', exportarCsv);
 
   carregarEstado();
+  limitarDatas();
   atualizar();
 })();

@@ -21,7 +21,7 @@ Não precisa instalar nada: abra `index.html` no navegador. Os resumos são feit
    - *Cada termo separado* – uma busca por termo.
    - *Combinações de K termos* – todas as combinações de tamanho K.
    - *Todas as combinações* – todos os subconjuntos (limitado a 200 buscas).
-3. **Filtros** – termo fixo, exclusões (`-termo`), `site:`, `filetype:`, período, idioma, país e `intitle:`/`inurl:`/`intext:`.
+3. **Filtros** – período (data inicial e final, digitadas manualmente) e sites a consultar (um por linha; vários sites viram `(site:a OR site:b)`).
 4. **Resultados** – abra cada busca no Google, abra todas em abas, copie os links ou exporte em CSV.
 5. **Resumos com o Claude**
    1. As buscas são divididas em partes (8 por mensagem, ajustável). Em cada parte, clique em *Copiar e abrir o Claude*: o texto com as instruções e as buscas é copiado e o claude.ai abre numa nova aba. Se o texto não vier preenchido, cole com Ctrl+V. Deixe a pesquisa na web ativada.

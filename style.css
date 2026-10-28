@@ -24,12 +24,14 @@ footer { padding-bottom: 32px; font-size: 13px; }
 }
 h2 { font-size: 17px; margin: 0 0 12px; }
 label { display: block; color: var(--muted); font-size: 13px; }
-input[type=text], select {
+input[type=text], input[type=date], select {
   font: inherit; color: var(--text); background: var(--bg);
   border: 1px solid var(--border); border-radius: 6px; padding: 6px 8px;
 }
 .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 12px; }
 .grid input, .grid select { width: 100%; margin-top: 4px; }
+.grid .largo { grid-column: 1 / -1; }
+#sites { font: inherit; }
 .row { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; margin-top: 8px; }
 .between { justify-content: space-between; margin-top: 0; }
 .between h2 { margin: 0; }
