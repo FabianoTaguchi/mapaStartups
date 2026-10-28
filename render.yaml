@@ -1,0 +1,26 @@
+# Deploy no Render (Blueprint): https://render.com/docs/blueprint-spec
+# As chaves marcadas com "sync: false" não ficam no repositório: o Render pede
+# para preenchê-las no painel na primeira criação do serviço.
+services:
+  - type: web
+    name: mapa-startups
+    runtime: node
+    buildCommand: npm ci
+    startCommand: npm start
+    autoDeploy: true
+    envVars:
+      # No Render não existe SearXNG nem Ollama: a busca é o Serper e a IA é o Claude.
+      - key: PROVEDOR_BUSCA
+        value: serper
+      - key: PROVEDOR_IA
+        value: claude
+      - key: CLAUDE_MODEL
+        value: claude-sonnet-5-5
+      - key: MAX_PAGINAS_VISITADAS
+        value: 6
+      - key: MAX_PAGINAS_FILHAS
+        value: 4
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      - key: SERPER_API_KEY
+        sync: false

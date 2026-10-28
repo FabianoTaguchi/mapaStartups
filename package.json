@@ -19,6 +19,9 @@
   },
   "homepage": "https://github.com/FabianoTaguchi/mapaStartups#readme",
   "type": "module",
+  "engines": {
+    "node": ">=20.12"
+  },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.133.0",
     "zod": "^4.6.7"
