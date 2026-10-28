@@ -9,13 +9,12 @@
 <body>
   <header>
     <h1>Mapa Startups</h1>
-    <p>Monte buscas no Google a partir de vários termos, combinados ou não.</p>
   </header>
 
   <main>
     <section class="card">
       <h2>1. Termos</h2>
-      <label for="termo-input">Digite um termo e pressione Enter (ou cole vários separados por vírgula/linha)</label>
+      <label for="termo-input">Termos devem ser separados entre vírgulas</label>
       <div class="tags" id="tags">
         <input id="termo-input" type="text" placeholder="ex.: startup, inovação, Cuiabá" autocomplete="off">
       </div>
@@ -102,25 +101,25 @@
         <label class="check"><input type="checkbox" id="auto-importar" checked> Importar sozinho ao voltar para esta aba</label>
       </div>
       <p id="status-importacao" class="vazio"></p>
-      </div>
-
-      <details id="modo-automatico" hidden>
-        <summary>Modo automático (servidor local)</summary>
-        <div class="row">
-          <label class="inline">Resultados por busca
-            <select id="max-resultados">
-              <option value="5">5</option>
-              <option value="10" selected>10</option>
-              <option value="20">20</option>
-              <option value="30">30</option>
-            </select>
-          </label>
-          <button type="button" id="resumir">Buscar e resumir</button>
-        </div>
-        <p id="status-servidor" class="vazio"></p>
-      </details>
 
       <div id="resumos"></div>
+    </section>
+
+    <section class="card destaque" id="modo-automatico" hidden>
+      <h2>6. Busca automática</h2>
+      <p class="vazio">Busca no Google e resume com o Claude sem sair da página. Os resumos encontrados aparecem na seção 5.</p>
+      <div class="row">
+        <label class="inline">Resultados por busca
+          <select id="max-resultados">
+            <option value="5">5</option>
+            <option value="10" selected>10</option>
+            <option value="20">20</option>
+            <option value="30">30</option>
+          </select>
+        </label>
+        <button type="button" id="resumir">Buscar e resumir</button>
+      </div>
+      <p id="status-servidor" class="vazio"></p>
     </section>
   </main>
 

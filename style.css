@@ -100,3 +100,9 @@ textarea {
 }
 details { margin-top: 14px; }
 summary { cursor: pointer; color: var(--muted); font-size: 14px; }
+
+/* Seção 6: busca automática pelo servidor */
+.card.destaque { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+.card.destaque h2 { color: var(--accent); }
+.card.destaque .vazio { margin: 0 0 10px; font-size: 14px; }
+#resumir { padding: 10px 20px; font-size: 16px; font-weight: 600; }
