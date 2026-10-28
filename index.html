@@ -59,6 +59,7 @@
           <button type="button" id="abrir-todas">Abrir todas</button>
           <button type="button" id="copiar" class="secundario">Copiar links</button>
           <button type="button" id="exportar" class="secundario">Exportar CSV</button>
+          <button type="button" id="exportar-xlsx" class="secundario" title="Planilha .xlsx com as buscas e os resumos importados em abas separadas">Exportar planilha (.xlsx)</button>
         </div>
       </div>
       <p id="aviso" class="aviso" hidden></p>
@@ -111,6 +112,7 @@
               <option value="5">5</option>
               <option value="10" selected>10</option>
               <option value="20">20</option>
+              <option value="30">30</option>
             </select>
           </label>
           <button type="button" id="resumir">Buscar e resumir</button>
@@ -126,6 +128,7 @@
     Dica: permita pop-ups para esta página no navegador, para “Abrir todas” e “Copiar e abrir o Claude” funcionarem.
   </footer>
 
+  <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
   <script src="app.js"></script>
 </body>
 </html>

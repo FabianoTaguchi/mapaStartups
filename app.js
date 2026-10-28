@@ -21,10 +21,13 @@
     abrirTodas: $('#abrir-todas'),
     copiar: $('#copiar'),
     exportar: $('#exportar'),
+    exportarXlsx: $('#exportar-xlsx'),
   };
 
   let termos = [];
   let buscas = [];
+  // Assinatura das buscas atuais: identifica quando o usuário começou uma nova busca.
+  let assinaturaBuscas = '';
 
   // ---------- Termos ----------
 
@@ -174,6 +177,12 @@
       return { consulta, url: montarUrl(consulta) };
     });
 
+    // Nova busca (mudou termo, modo ou filtro): descarta as buscas e os resumos
+    // anteriores, para uma pesquisa não se misturar com a outra.
+    const assinatura = buscas.map((b) => b.url).join('\n');
+    if (assinaturaBuscas && assinatura !== assinaturaBuscas) limparSecoes();
+    assinaturaBuscas = assinatura;
+
     el.aviso.hidden = !excedeu;
     if (excedeu) {
       el.aviso.textContent = `Muitas combinações: exibindo apenas as primeiras ${LIMITE_BUSCAS}. Reduza o número de termos ou escolha outro modo.`;
@@ -182,6 +191,7 @@
     el.contador.textContent = buscas.length;
     el.vazio.hidden = buscas.length > 0;
     [el.abrirTodas, el.copiar, el.exportar].forEach((b) => { b.disabled = !buscas.length; });
+    atualizarBotoesPlanilha();
 
     el.resultados.innerHTML = '';
     buscas.forEach((b) => {
@@ -228,6 +238,10 @@
     setTimeout(() => { el.copiar.textContent = 'Copiar links'; }, 1500);
   }
 
+  function atualizarBotoesPlanilha() {
+    el.exportarXlsx.disabled = !buscas.length && !resumos.some((r) => (r.itens || []).length) && !respostasBrutas.length;
+  }
+
   function exportarCsv() {
     const esc = (s) => `"${String(s).replace(/"/g, '""')}"`;
     const linhas = [['consulta', 'url'], ...buscas.map((b) => [b.consulta, b.url])];
@@ -246,6 +260,7 @@
 
   const CABECALHO = ['consulta', 'nome', 'responsavel', 'area', 'website', 'resumo', 'fonte'];
   const CHAVE_RESUMOS = 'mapaStartups.resumos';
+  const CHAVE_BRUTOS = 'mapaStartups.respostasBrutas';
   const CONCORRENCIA = 2;
   const resumo = {
     lista: $('#resumos'),
@@ -265,6 +280,9 @@
     status: $('#status-servidor'),
   };
   let resumos = [];
+  // Textos originais devolvidos pelo Claude, na ordem em que foram importados:
+  // garantem que a exportação não perca nada que o parser não tenha reconhecido.
+  let respostasBrutas = [];
   let resumindo = false;
   let ultimoPromptCopiado = '';
   let ultimoTextoImportado = '';
@@ -338,11 +356,13 @@
   function atualizarResumos() {
     const total = resumos.reduce((n, r) => n + (r.itens ? r.itens.length : 0), 0);
     resumo.contador.textContent = total;
-    resumo.exportar.disabled = !total;
+    resumo.exportar.disabled = !total && !respostasBrutas.length;
+    atualizarBotoesPlanilha();
     renderizarLotes();
     try {
       const salvos = resumos.filter((r) => r.estado === 'ok').map((r) => ({ consulta: r.consulta, itens: r.itens }));
       localStorage.setItem(CHAVE_RESUMOS, JSON.stringify(salvos));
+      localStorage.setItem(CHAVE_BRUTOS, JSON.stringify(respostasBrutas));
     } catch { /* armazenamento indisponível */ }
   }
 
@@ -529,11 +549,22 @@
     return { itens, achouCabecalho: Boolean(colunas) };
   }
 
+  // Guarda o texto como o Claude devolveu, para a exportação levar tudo
+  // (inclusive o que o parser não reconhecer). Textos iguais não se repetem.
+  function guardarBruto(texto) {
+    const t = String(texto || '').trim();
+    if (!t || respostasBrutas.some((b) => b.texto === t)) return;
+    respostasBrutas.push({ quando: new Date().toISOString(), texto: t });
+  }
+
   function importarResposta() {
-    ultimoTextoImportado = resumo.resposta.value;
-    const { itens, achouCabecalho } = interpretarResposta(resumo.resposta.value);
+    const texto = resumo.resposta.value;
+    ultimoTextoImportado = texto;
+    guardarBruto(texto);
+    const { itens, achouCabecalho } = interpretarResposta(texto);
     if (!achouCabecalho) {
-      resumo.statusImportacao.textContent = `Não encontrei a tabela. A resposta precisa ter o cabeçalho: ${CABECALHO.join(';')}`;
+      atualizarResumos();
+      resumo.statusImportacao.textContent = `Não encontrei a tabela. A resposta precisa ter o cabeçalho: ${CABECALHO.join(';')} (a resposta ficou guardada e sai na exportação).`;
       return;
     }
     let novos = 0;
@@ -551,7 +582,6 @@
     atualizarResumos();
     resumo.statusImportacao.textContent = `${novos} startup(s)/projeto(s) importado(s)` +
       (itens.length > novos ? ` (${itens.length - novos} repetido(s) ignorado(s))` : '') + '.';
-    if (novos) resumo.resposta.value = '';
   }
 
   // ----- Importação pela área de transferência -----
@@ -581,7 +611,10 @@
     if (!resumo.autoImportar.checked || !aguardandoResposta || document.visibilityState !== 'visible') return;
     const texto = await lerAreaTransferencia();
     if (!texto || texto === ultimoPromptCopiado || texto === ultimoTextoImportado) return;
-    if (!interpretarResposta(texto).itens.length) return;
+    const { itens, achouCabecalho } = interpretarResposta(texto);
+    // Resposta com a tabela esperada (mesmo sem nenhuma linha aproveitável) é
+    // importada: o texto bruto fica guardado para a exportação.
+    if (!itens.length && !achouCabecalho) return;
     resumo.resposta.value = texto;
     importarResposta();
   }
@@ -601,6 +634,10 @@
     } catch { /* sem servidor: só o modo com o Claude no chat */ }
   }
 
+  // Teto de tempo por busca: sem isso, uma requisição que nunca responde deixa
+  // o botão preso em "Resumindo…" e ele deixa de responder aos cliques.
+  const TEMPO_LIMITE = 5 * 60 * 1000;
+
   async function processar(r) {
     r.estado = 'carregando';
     renderizarBloco(r);
@@ -613,6 +650,7 @@
           maxResultados: Number(resumo.maxResultados.value),
           filtros: periodo(),
         }),
+        signal: AbortSignal.timeout(TEMPO_LIMITE),
       });
       const dados = await resp.json();
       if (!resp.ok) throw new Error(dados.erro || `HTTP ${resp.status}`);
@@ -620,15 +658,24 @@
       r.estado = 'ok';
     } catch (e) {
       r.estado = 'erro';
-      r.erro = e.message;
+      r.erro = e.name === 'TimeoutError' ? 'passou de 5 minutos sem resposta'
+        : e.message === 'Failed to fetch' ? 'sem resposta do servidor (ele ainda está rodando?)'
+          : e.message;
     }
     renderizarBloco(r);
     atualizarResumos();
   }
 
   async function resumirTodas() {
-    if (resumindo || !buscas.length) return;
-    if (buscas.length > 10 && !confirm(`Gerar resumos para ${buscas.length} buscas?`)) return;
+    if (resumindo) return;
+    if (!buscas.length) {
+      resumo.status.textContent = 'Nada para resumir: adicione termos na seção 1 para gerar as buscas da seção 4.';
+      return;
+    }
+    if (buscas.length > 10 && !confirm(`Gerar resumos para ${buscas.length} buscas?`)) {
+      resumo.status.textContent = 'Resumos cancelados.';
+      return;
+    }
     resumindo = true;
     resumo.botao.disabled = true;
     resumo.botao.textContent = 'Resumindo…';
@@ -638,22 +685,39 @@
       renderizarBloco(r);
       return r;
     });
-    await Promise.all(Array.from({ length: CONCORRENCIA }, async () => {
-      while (fila.length) await processar(fila.shift());
-    }));
-    resumindo = false;
-    resumo.botao.disabled = false;
-    resumo.botao.textContent = 'Buscar e resumir';
+    let feitos = 0;
+    const trabalhar = async () => {
+      while (fila.length) {
+        await processar(fila.shift());
+        feitos++;
+        resumo.botao.textContent = `Resumindo ${feitos}/${buscas.length}…`;
+      }
+    };
+    try {
+      await Promise.all(Array.from({ length: CONCORRENCIA }, trabalhar));
+    } finally {
+      // O botão volta ao normal mesmo se alguma busca falhar no meio.
+      resumindo = false;
+      resumo.botao.disabled = false;
+      resumo.botao.textContent = 'Buscar e resumir';
+    }
   }
 
   // ----- Exportar / limpar / carregar -----
 
+  // Sai tudo num arquivo só: a tabela dos itens reconhecidos e, no fim, as
+  // respostas originais do Claude — cada uma numa célula, mesmo que o parser
+  // não tenha conseguido aproveitar nada dela.
   function exportarResumos() {
     const esc = (s) => `"${String(s ?? '').replace(/"/g, '""')}"`;
     const linhas = [CABECALHO];
     resumos.forEach((r) => (r.itens || []).forEach((it) => {
       linhas.push([r.consulta, it.nome, it.responsavel, it.area, it.website, it.resumo, it.fonte]);
     }));
+    if (respostasBrutas.length) {
+      linhas.push([], ['resposta_bruta_do_claude']);
+      respostasBrutas.forEach((b) => linhas.push([b.texto]));
+    }
     const csv = '﻿' + linhas.map((l) => l.map(esc).join(';')).join('\r\n');
     const a = document.createElement('a');
     a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
@@ -662,12 +726,52 @@
     URL.revokeObjectURL(a.href);
   }
 
-  function limparResumos() {
-    if (resumos.length && !confirm('Apagar todos os resumos importados?')) return;
+  // Planilha .xlsx (SheetJS) com as buscas e os resumos em abas separadas.
+  function exportarPlanilha() {
+    if (typeof XLSX === 'undefined') {
+      alert('A biblioteca de planilhas (SheetJS) não carregou. Verifique a conexão com a internet e recarregue a página.');
+      return;
+    }
+    const linhasBuscas = [['consulta', 'url'], ...buscas.map((b) => [b.consulta, b.url])];
+    const linhasResumos = [CABECALHO];
+    resumos.forEach((r) => (r.itens || []).forEach((it) => {
+      linhasResumos.push([r.consulta, it.nome, it.responsavel, it.area, it.website, it.resumo, it.fonte]);
+    }));
+
+    const livros = XLSX.utils.book_new();
+    const abaBuscas = XLSX.utils.aoa_to_sheet(linhasBuscas);
+    abaBuscas['!cols'] = [{ wch: 52 }, { wch: 90 }];
+    const abaResumos = XLSX.utils.aoa_to_sheet(linhasResumos);
+    abaResumos['!cols'] = [{ wch: 38 }, { wch: 28 }, { wch: 24 }, { wch: 24 }, { wch: 34 }, { wch: 60 }, { wch: 45 }];
+    XLSX.utils.book_append_sheet(livros, abaBuscas, 'Buscas');
+    XLSX.utils.book_append_sheet(livros, abaResumos, 'Resumos');
+    if (respostasBrutas.length) {
+      const linhasBrutas = [['quando', 'resposta_bruta_do_claude'], ...respostasBrutas.map((b) => [b.quando, b.texto])];
+      const abaBrutas = XLSX.utils.aoa_to_sheet(linhasBrutas);
+      abaBrutas['!cols'] = [{ wch: 22 }, { wch: 120 }];
+      XLSX.utils.book_append_sheet(livros, abaBrutas, 'Respostas do Claude');
+    }
+    XLSX.writeFile(livros, `mapa-startups-${new Date().toISOString().slice(0, 10)}.xlsx`);
+  }
+
+  // Zera a seção 5 (resumos, partes montadas para o Claude e campos de importação)
+  // e o que estava salvo no navegador. A seção 4 é refeita logo em seguida com as
+  // buscas novas.
+  function limparSecoes() {
     resumos = [];
+    respostasBrutas = [];
     resumo.lista.innerHTML = '';
+    resumo.resposta.value = '';
     resumo.statusImportacao.textContent = '';
+    ultimoPromptCopiado = '';
+    ultimoTextoImportado = '';
+    aguardandoResposta = false;
     atualizarResumos();
+  }
+
+  function limparResumos() {
+    if ((resumos.length || respostasBrutas.length) && !confirm('Apagar todos os resumos e as respostas guardadas?')) return;
+    limparSecoes();
   }
 
   function carregarResumos() {
@@ -675,6 +779,10 @@
       const salvos = JSON.parse(localStorage.getItem(CHAVE_RESUMOS) || '[]');
       resumos = salvos.map((r) => ({ consulta: r.consulta, itens: r.itens || [], estado: 'ok' }));
     } catch { resumos = []; }
+    try {
+      const brutos = JSON.parse(localStorage.getItem(CHAVE_BRUTOS) || '[]');
+      respostasBrutas = Array.isArray(brutos) ? brutos.filter((b) => b && b.texto) : [];
+    } catch { respostasBrutas = []; }
     resumos.forEach(renderizarBloco);
     atualizarResumos();
   }
@@ -750,18 +858,26 @@
   });
   [el.aspas, el.dataInicio, el.dataFim, el.sites]
     .forEach((c) => c.addEventListener('input', () => { renderizarResultados(); salvarEstado(); }));
-  // Impede escolher data final anterior à inicial (e vice-versa).
-  function limitarDatas() {
-    el.dataFim.min = el.dataInicio.value;
-    el.dataInicio.max = el.dataFim.value;
+  // Impede escolher data final anterior à inicial (e vice-versa): se ficarem
+  // invertidas, troca as duas de lugar ao sair do campo.
+  // Não dá para usar os atributos min/max do input: alterá-los durante a
+  // digitação (o Chrome dispara change no meio dela) apaga a data digitada.
+  function ordenarDatas() {
+    const { dataInicio, dataFim } = periodo();
+    if (!dataInicio || !dataFim || dataInicio <= dataFim) return;
+    el.dataInicio.value = dataFim;
+    el.dataFim.value = dataInicio;
+    renderizarResultados();
+    salvarEstado();
   }
-  [el.dataInicio, el.dataFim].forEach((c) => c.addEventListener('input', limitarDatas));
+  [el.dataInicio, el.dataFim].forEach((c) => c.addEventListener('blur', ordenarDatas));
 
   el.abrirTodas.addEventListener('click', abrirTodas);
   el.copiar.addEventListener('click', copiarLinks);
   el.exportar.addEventListener('click', exportarCsv);
+  el.exportarXlsx.addEventListener('click', exportarPlanilha);
 
   carregarEstado();
-  limitarDatas();
+  ordenarDatas();
   atualizar();
 })();
