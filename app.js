@@ -14,6 +14,7 @@
     dataInicio: $('#data-inicio'),
     dataFim: $('#data-fim'),
     sites: $('#sites'),
+    regiao: $('#regiao'),
     contador: $('#contador'),
     aviso: $('#aviso'),
     resultados: $('#resultados'),
@@ -119,6 +120,12 @@
     return s;
   }
 
+  // Região informada nos filtros: entra no fim de cada consulta, e é ela que
+  // faz o buscador devolver resultados daquele lugar.
+  function valorRegiao() {
+    return el.regiao.value.trim().replace(/\s+/g, ' ').replace(/[,;]+$/, '');
+  }
+
   function montarConsulta(grupo) {
     const partes = [];
     const formatados = grupo.termos.map(formatarTermo);
@@ -131,6 +138,9 @@
     const sites = listarSites();
     if (sites.length === 1) partes.push(`site:${sites[0]}`);
     else if (sites.length > 1) partes.push(`(${sites.map((s) => `site:${s}`).join(' OR ')})`);
+
+    const local = valorRegiao();
+    if (local) partes.push(local);
 
     return partes.join(' ');
   }
@@ -800,7 +810,7 @@
 
   // ---------- Persistência ----------
 
-  const camposPersistidos = ['dataInicio', 'dataFim', 'sites', 'k'];
+  const camposPersistidos = ['dataInicio', 'dataFim', 'sites', 'k', 'regiao'];
 
   function salvarEstado() {
     try {
@@ -856,7 +866,7 @@
     document.querySelector('input[name=modo][value=k]').checked = true;
     atualizar();
   });
-  [el.aspas, el.dataInicio, el.dataFim, el.sites]
+  [el.aspas, el.dataInicio, el.dataFim, el.sites, el.regiao]
     .forEach((c) => c.addEventListener('input', () => { renderizarResultados(); salvarEstado(); }));
   // Impede escolher data final anterior à inicial (e vice-versa): se ficarem
   // invertidas, troca as duas de lugar ao sair do campo.
