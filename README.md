@@ -77,6 +77,27 @@ Dicas:
 - Para respostas melhores, troque `OLLAMA_MODEL` por um modelo maior (ex.: `qwen2.5:14b`) se o computador aguentar.
 - Se preferir rodar o Ollama em contêiner: `docker compose --profile ollama up -d` e depois `docker compose exec ollama ollama pull qwen2.5:7b`.
 
+### Sites que não retornam nada
+
+Para descobrir por que um site não é lido, rode o diagnóstico com os endereços:
+
+```bash
+npm run diagnosticar -- https://site1.com.br https://site2.com.br
+```
+
+Ele mostra se a página foi lida, por qual caminho (`fetch` ou `navegador`), o status e o motivo da falha. Os motivos mais comuns:
+
+- **pouco texto (montada por JavaScript?)** – o site monta a lista no navegador (React, Wix, Webflow...). Instale o navegador opcional, que passa a ser usado sozinho nesses casos:
+  ```bash
+  npm install playwright
+  npx playwright install chromium
+  ```
+- **bloqueada (status 403/429/503)** – proteção anti-robô (Cloudflare, captcha). O navegador opcional resolve parte dos casos.
+- **não é HTML** – PDFs e outros arquivos ainda não são lidos.
+- **tempo esgotado** – aumente `TEMPO_LIMITE_PAGINA` no `.env`.
+
+Durante a busca automática, as páginas ignoradas também aparecem no terminal do servidor, com o motivo. No Render, o navegador exige um plano com mais memória que o gratuito; sem ele, o servidor continua funcionando só com o `fetch`.
+
 ### Pagos
 
 No `.env`, cada parte pode ser trocada sem mexer no código:

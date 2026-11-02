@@ -5,7 +5,8 @@
   "main": "app.js",
   "scripts": {
     "start": "node server.js",
-    "configurar": "node configurar.js"
+    "configurar": "node configurar.js",
+    "diagnosticar": "node scripts/diagnosticar.js"
   },
   "repository": {
     "type": "git",
