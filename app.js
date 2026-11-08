@@ -3,6 +3,7 @@
 
   const LIMITE_BUSCAS = 200;
   const CHAVE_STORAGE = 'mapaStartups.estado';
+  const Mapa = window.Mapa;
 
   const $ = (sel) => document.querySelector(sel);
   const el = {
@@ -19,10 +20,6 @@
     aviso: $('#aviso'),
     resultados: $('#resultados'),
     vazio: $('#vazio'),
-    abrirTodas: $('#abrir-todas'),
-    copiar: $('#copiar'),
-    exportar: $('#exportar'),
-    exportarXlsx: $('#exportar-xlsx'),
   };
 
   let termos = [];
@@ -200,8 +197,6 @@
 
     el.contador.textContent = buscas.length;
     el.vazio.hidden = buscas.length > 0;
-    [el.abrirTodas, el.copiar, el.exportar].forEach((b) => { b.disabled = !buscas.length; });
-    atualizarBotoesPlanilha();
 
     el.resultados.innerHTML = '';
     buscas.forEach((b) => {
@@ -224,44 +219,6 @@
     renderizarOpcoesK();
     renderizarResultados();
     salvarEstado();
-  }
-
-  // ---------- Ações ----------
-
-  function abrirTodas() {
-    if (buscas.length > 10 && !confirm(`Abrir ${buscas.length} abas do Google?`)) return;
-    let bloqueadas = 0;
-    buscas.forEach((b) => {
-      if (!window.open(b.url, '_blank', 'noopener')) bloqueadas++;
-    });
-    if (bloqueadas) alert(`${bloqueadas} aba(s) foram bloqueadas. Permita pop-ups para esta página e tente novamente.`);
-  }
-
-  async function copiarLinks() {
-    const texto = buscas.map((b) => b.url).join('\n');
-    try {
-      await navigator.clipboard.writeText(texto);
-      el.copiar.textContent = 'Copiado!';
-    } catch {
-      prompt('Copie os links abaixo:', texto);
-    }
-    setTimeout(() => { el.copiar.textContent = 'Copiar links'; }, 1500);
-  }
-
-  function atualizarBotoesPlanilha() {
-    el.exportarXlsx.disabled = !buscas.length && !resumos.some((r) => (r.itens || []).length) && !respostasBrutas.length;
-  }
-
-  function exportarCsv() {
-    const esc = (s) => `"${String(s).replace(/"/g, '""')}"`;
-    const linhas = [['consulta', 'url'], ...buscas.map((b) => [b.consulta, b.url])];
-    const csv = '﻿' + linhas.map((l) => l.map(esc).join(';')).join('\r\n');
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = 'buscas-google.csv';
-    a.click();
-    URL.revokeObjectURL(a.href);
   }
 
   // ---------- Resumos ----------
@@ -287,7 +244,6 @@
     modoAuto: $('#modo-automatico'),
     botao: $('#resumir'),
     maxResultados: $('#max-resultados'),
-    status: $('#status-servidor'),
   };
   let resumos = [];
   // Textos originais devolvidos pelo Claude, na ordem em que foram importados:
@@ -301,28 +257,37 @@
   // Compara buscas ignorando aspas, espaços extras e maiúsculas.
   const chave = (t) => String(t || '').replace(/["“”]/g, '').replace(/\s+/g, ' ').trim().toLowerCase();
 
+  // ----- Duplicados -----
+
+  // Durante a busca, o mesmo projeto pode aparecer em mais de uma consulta. A
+  // primeira ocorrência é a que vale; as seguintes são duplicadas: ficam
+  // tachadas, sem as caixas de ação e fora da contagem e da exportação.
+  // Devolve os objetos duplicados (comparados por identidade).
+  function itensDuplicados() {
+    const vistas = new Set();
+    const duplicados = new Set();
+    resumos.forEach((r) => (r.itens || []).forEach((it) => {
+      const k = Mapa.chaveUnica(it);
+      if (!k) return;
+      if (vistas.has(k)) duplicados.add(it);
+      else vistas.add(k);
+    }));
+    return duplicados;
+  }
+
+  function renderizarTodos() {
+    resumos.forEach(renderizarBloco);
+  }
+
+  // Itens que valem para contagem e exportação, com a consulta de origem.
+  function itensParaExportar() {
+    const duplicados = itensDuplicados();
+    return resumos.flatMap((r) => (r.itens || [])
+      .filter((it) => !duplicados.has(it))
+      .map((it) => [r.consulta, it]));
+  }
+
   // ----- Cartões -----
-
-  function linkSeguro(url, texto) {
-    if (!url || !/^https?:\/\//i.test(url)) return null;
-    const a = document.createElement('a');
-    a.href = url;
-    a.target = '_blank';
-    a.rel = 'noopener noreferrer';
-    a.textContent = texto || url;
-    return a;
-  }
-
-  function campo(dl, rotulo, valor, comoLink) {
-    const dt = document.createElement('dt');
-    dt.textContent = rotulo;
-    const dd = document.createElement('dd');
-    const link = comoLink && linkSeguro(valor);
-    if (link) dd.appendChild(link);
-    else if (valor) dd.textContent = valor;
-    else { dd.textContent = 'não identificado'; dd.className = 'nd'; }
-    dl.append(dt, dd);
-  }
 
   function renderizarBloco(r) {
     if (!r.el) {
@@ -331,6 +296,10 @@
       resumo.lista.appendChild(r.el);
     }
     r.el.innerHTML = '';
+    const duplicados = itensDuplicados();
+    // Quem já está na seleção continua aparecendo, mas em outro tom e sem poder
+    // ser marcado: as duas listas são lidas uma vez por bloco redesenhado.
+    const selecionados = Mapa.lerSelecionados();
     const h3 = document.createElement('h3');
     h3.textContent = r.consulta + ' ';
     const estado = document.createElement('span');
@@ -338,7 +307,10 @@
     if (r.estado === 'carregando') estado.textContent = '— buscando e resumindo…';
     else if (r.estado === 'aguardando') estado.textContent = '— na fila';
     else if (r.estado === 'erro') { estado.textContent = `— erro: ${r.erro}`; estado.classList.add('erro'); }
-    else estado.textContent = `— ${r.itens.length} encontrado(s)`;
+    else {
+      const repetidos = r.itens.filter((it) => duplicados.has(it)).length;
+      estado.textContent = `— ${r.itens.length - repetidos} encontrado(s)${repetidos ? ` · ${repetidos} duplicado(s)` : ''}`;
+    }
     h3.appendChild(estado);
     r.el.appendChild(h3);
 
@@ -346,28 +318,77 @@
     const grade = document.createElement('div');
     grade.className = 'itens';
     r.itens.forEach((it) => {
-      const card = document.createElement('div');
-      card.className = 'item';
-      const h4 = document.createElement('h4');
-      h4.textContent = it.nome;
-      const p = document.createElement('p');
-      p.textContent = it.resumo || '';
-      const dl = document.createElement('dl');
-      campo(dl, 'Responsável', it.responsavel);
-      campo(dl, 'Área', it.area);
-      campo(dl, 'Website', it.website, true);
-      campo(dl, 'Fonte', it.fonte, true);
-      card.append(h4, p, dl);
-      grade.appendChild(card);
+      const duplicado = duplicados.has(it);
+      const jaSelecionado = Mapa.ehSelecionado(it, selecionados);
+      const cartao = Mapa.criarCartao(it);
+      if (duplicado) cartao.classList.add('duplicado');
+      if (jaSelecionado) cartao.classList.add('selecionado');
+      cartao.appendChild(acoesDoItem(it, r, duplicado, jaSelecionado));
+      grade.appendChild(cartao);
     });
     r.el.appendChild(grade);
   }
 
+  // Cada resultado ganha duas caixas: marcar qualquer uma tira o item da lista
+  // da busca e o encaminha para a página correspondente (selecionados ou spam).
+  // "Selecionar" fica verde com um check; "Ignorar" fica vermelho com um x.
+  function acoesDoItem(it, r, duplicado, jaSelecionado) {
+    const acoes = document.createElement('div');
+    acoes.className = 'acoes';
+    const caixa = (rotulo, destino, tom, simbolo) => {
+      const label = document.createElement('label');
+      label.className = `check ${tom}`;
+      const input = document.createElement('input');
+      input.type = 'checkbox';
+      // No item repetido ou já selecionado as caixas ficam inativas: ele não é
+      // encaminhado de novo.
+      input.disabled = Boolean(duplicado || jaSelecionado);
+      input.addEventListener('change', () => { if (input.checked) encaminhar(it, r, destino); });
+      const icone = document.createElement('span');
+      icone.className = 'icone';
+      icone.setAttribute('aria-hidden', 'true');
+      icone.textContent = simbolo;
+      const texto = document.createElement('span');
+      texto.textContent = rotulo;
+      label.append(input, icone, texto);
+      return label;
+    };
+    acoes.append(
+      caixa('Selecionar', 'selecionados', 'tom-verde', '✓'),
+      caixa('Ignorar', 'spam', 'tom-vermelho', '✕'),
+    );
+    const nota = document.createElement('span');
+    if (jaSelecionado) {
+      nota.className = 'nota-selecionado';
+      nota.textContent = 'Registro já está na seleção';
+    } else if (duplicado) {
+      nota.className = 'nota-duplicado';
+      nota.textContent = 'Registro Duplicado';
+    } else {
+      return acoes;
+    }
+    acoes.appendChild(nota);
+    return acoes;
+  }
+
+  function encaminhar(it, r, destino) {
+    // A consulta de origem vai junto do item: é por ela que o dashboard agrupa
+    // os selecionados.
+    const registro = { ...it, consulta: r.consulta };
+    if (destino === 'spam') Mapa.acrescentarSpam(registro);
+    else Mapa.acrescentarSelecionado(registro);
+    r.itens = r.itens.filter((x) => x !== it);
+    // Re-renderiza tudo: ao tirar o primeiro item, o repetido seguinte pode
+    // deixar de ser duplicado e voltar a ficar disponível.
+    renderizarTodos();
+    atualizarResumos();
+  }
+
   function atualizarResumos() {
-    const total = resumos.reduce((n, r) => n + (r.itens ? r.itens.length : 0), 0);
+    // Duplicados não entram na contagem: são resultados repetidos.
+    const total = itensParaExportar().length;
     resumo.contador.textContent = total;
     resumo.exportar.disabled = !total && !respostasBrutas.length;
-    atualizarBotoesPlanilha();
     renderizarLotes();
     try {
       const salvos = resumos.filter((r) => r.estado === 'ok').map((r) => ({ consulta: r.consulta, itens: r.itens }));
@@ -578,8 +599,12 @@
       return;
     }
     let novos = 0;
+    let noSpam = 0;
+    const spam = Mapa.lerSpam();
     const tocados = new Set();
     itens.forEach(({ consulta, ...item }) => {
+      // O que já está marcado como spam não volta para a lista.
+      if (Mapa.ehSpam(item, spam)) { noSpam++; return; }
       const r = obterResumo(consulta);
       r.estado = 'ok';
       tocados.add(r);
@@ -590,8 +615,11 @@
     });
     tocados.forEach(renderizarBloco);
     atualizarResumos();
-    resumo.statusImportacao.textContent = `${novos} startup(s)/projeto(s) importado(s)` +
-      (itens.length > novos ? ` (${itens.length - novos} repetido(s) ignorado(s))` : '') + '.';
+    resumo.statusImportacao.textContent = [
+      `${novos} startup(s)/projeto(s) importado(s)`,
+      itens.length > novos ? `${itens.length - novos} repetido(s) ignorado(s)` : '',
+      noSpam ? `${noSpam} na lista de spam` : '',
+    ].filter(Boolean).join(' — ') + '.';
   }
 
   // ----- Importação pela área de transferência -----
@@ -634,13 +662,9 @@
   async function verificarServidor() {
     if (location.protocol === 'file:') return;
     try {
-      const { busca, ia } = await (await fetch('/api/status')).json();
+      // Se o servidor responde, a busca automática fica disponível.
+      await (await fetch('/api/status')).json();
       resumo.modoAuto.hidden = false;
-      const desc = (s) => `${s.provedor}${s.ok ? ' ✓' : ` ✗ (${s.detalhe})`}`;
-      resumo.status.textContent = `Busca: ${desc(busca)} · IA: ${desc(ia)}`;
-      if (!busca.ok || !ia.ok) {
-        resumo.status.textContent += ' — corrija o item marcado com ✗ e recarregue a página.';
-      }
     } catch { /* sem servidor: só o modo com o Claude no chat */ }
   }
 
@@ -664,7 +688,7 @@
       });
       const dados = await resp.json();
       if (!resp.ok) throw new Error(dados.erro || `HTTP ${resp.status}`);
-      r.itens = dados.itens;
+      r.itens = Mapa.filtrarSpam(dados.itens);
       r.estado = 'ok';
     } catch (e) {
       r.estado = 'erro';
@@ -679,13 +703,10 @@
   async function resumirTodas() {
     if (resumindo) return;
     if (!buscas.length) {
-      resumo.status.textContent = 'Nada para resumir: adicione termos na seção 1 para gerar as buscas da seção 4.';
+      alert('Nada para resumir: adicione termos na seção 1 para gerar as buscas da seção 4.');
       return;
     }
-    if (buscas.length > 10 && !confirm(`Gerar resumos para ${buscas.length} buscas?`)) {
-      resumo.status.textContent = 'Resumos cancelados.';
-      return;
-    }
+    if (buscas.length > 10 && !confirm(`Gerar resumos para ${buscas.length} buscas?`)) return;
     resumindo = true;
     resumo.botao.disabled = true;
     resumo.botao.textContent = 'Resumindo…';
@@ -721,9 +742,9 @@
   function exportarResumos() {
     const esc = (s) => `"${String(s ?? '').replace(/"/g, '""')}"`;
     const linhas = [CABECALHO];
-    resumos.forEach((r) => (r.itens || []).forEach((it) => {
-      linhas.push([r.consulta, it.nome, it.responsavel, it.area, it.website, it.resumo, it.fonte]);
-    }));
+    itensParaExportar().forEach(([consulta, it]) => {
+      linhas.push([consulta, it.nome, it.responsavel, it.area, it.website, it.resumo, it.fonte]);
+    });
     if (respostasBrutas.length) {
       linhas.push([], ['resposta_bruta_do_claude']);
       respostasBrutas.forEach((b) => linhas.push([b.texto]));
@@ -734,34 +755,6 @@
     a.download = 'resumos-startups.csv';
     a.click();
     URL.revokeObjectURL(a.href);
-  }
-
-  // Planilha .xlsx (SheetJS) com as buscas e os resumos em abas separadas.
-  function exportarPlanilha() {
-    if (typeof XLSX === 'undefined') {
-      alert('A biblioteca de planilhas (SheetJS) não carregou. Verifique a conexão com a internet e recarregue a página.');
-      return;
-    }
-    const linhasBuscas = [['consulta', 'url'], ...buscas.map((b) => [b.consulta, b.url])];
-    const linhasResumos = [CABECALHO];
-    resumos.forEach((r) => (r.itens || []).forEach((it) => {
-      linhasResumos.push([r.consulta, it.nome, it.responsavel, it.area, it.website, it.resumo, it.fonte]);
-    }));
-
-    const livros = XLSX.utils.book_new();
-    const abaBuscas = XLSX.utils.aoa_to_sheet(linhasBuscas);
-    abaBuscas['!cols'] = [{ wch: 52 }, { wch: 90 }];
-    const abaResumos = XLSX.utils.aoa_to_sheet(linhasResumos);
-    abaResumos['!cols'] = [{ wch: 38 }, { wch: 28 }, { wch: 24 }, { wch: 24 }, { wch: 34 }, { wch: 60 }, { wch: 45 }];
-    XLSX.utils.book_append_sheet(livros, abaBuscas, 'Buscas');
-    XLSX.utils.book_append_sheet(livros, abaResumos, 'Resumos');
-    if (respostasBrutas.length) {
-      const linhasBrutas = [['quando', 'resposta_bruta_do_claude'], ...respostasBrutas.map((b) => [b.quando, b.texto])];
-      const abaBrutas = XLSX.utils.aoa_to_sheet(linhasBrutas);
-      abaBrutas['!cols'] = [{ wch: 22 }, { wch: 120 }];
-      XLSX.utils.book_append_sheet(livros, abaBrutas, 'Respostas do Claude');
-    }
-    XLSX.writeFile(livros, `mapa-startups-${new Date().toISOString().slice(0, 10)}.xlsx`);
   }
 
   // Zera os resumos (lista, partes montadas para o Claude e campos de importação)
@@ -787,7 +780,7 @@
   function carregarResumos() {
     try {
       const salvos = JSON.parse(localStorage.getItem(CHAVE_RESUMOS) || '[]');
-      resumos = salvos.map((r) => ({ consulta: r.consulta, itens: r.itens || [], estado: 'ok' }));
+      resumos = salvos.map((r) => ({ consulta: r.consulta, itens: Mapa.filtrarSpam(r.itens || []), estado: 'ok' }));
     } catch { resumos = []; }
     try {
       const brutos = JSON.parse(localStorage.getItem(CHAVE_BRUTOS) || '[]');
@@ -801,6 +794,9 @@
   resumo.colarImportar.addEventListener('click', colarEImportar);
   window.addEventListener('focus', importarAoVoltar);
   document.addEventListener('visibilitychange', importarAoVoltar);
+  // As listas podem ter mudado enquanto o usuário estava em outra página (um
+  // item pode ter saído dos selecionados ou do spam): os cartões são redesenhados.
+  window.addEventListener('focus', renderizarTodos);
   resumo.exportar.addEventListener('click', exportarResumos);
   resumo.limpar.addEventListener('click', limparResumos);
   resumo.tamanhoLote.addEventListener('change', renderizarLotes);
@@ -881,11 +877,6 @@
     salvarEstado();
   }
   [el.dataInicio, el.dataFim].forEach((c) => c.addEventListener('blur', ordenarDatas));
-
-  el.abrirTodas.addEventListener('click', abrirTodas);
-  el.copiar.addEventListener('click', copiarLinks);
-  el.exportar.addEventListener('click', exportarCsv);
-  el.exportarXlsx.addEventListener('click', exportarPlanilha);
 
   carregarEstado();
   ordenarDatas();

@@ -9,6 +9,12 @@
 <body>
   <header>
     <h1>Mapa Startups</h1>
+    <nav>
+      <a href="index.html" class="ativo">Busca</a>
+      <a href="selecionados.html" class="tom-azul colorido">Selecionados</a>
+      <a href="dashboard.html" class="tom-verde colorido">Dashboard</a>
+      <a href="spam.html" class="tom-vermelho colorido">Spam</a>
+    </nav>
   </header>
 
   <main>
@@ -55,15 +61,7 @@
     </section>
 
     <section class="card">
-      <div class="row between">
-        <h2>4. Buscas geradas <span id="contador" class="badge">0</span></h2>
-        <div class="row">
-          <button type="button" id="abrir-todas">Abrir todas</button>
-          <button type="button" id="copiar" class="secundario">Copiar links</button>
-          <button type="button" id="exportar" class="secundario">Exportar CSV</button>
-          <button type="button" id="exportar-xlsx" class="secundario" title="Planilha .xlsx com as buscas e os resumos importados em abas separadas">Exportar planilha (.xlsx)</button>
-        </div>
-      </div>
+      <h2>4. Buscas geradas <span id="contador" class="badge">0</span></h2>
       <p id="aviso" class="aviso" hidden></p>
       <ol id="resultados" class="resultados"></ol>
       <p id="vazio" class="vazio">Adicione ao menos um termo para gerar as buscas.</p>
@@ -109,7 +107,6 @@
 
     <section class="card destaque" id="modo-automatico" hidden>
       <h2>5. Busca automática</h2>
-      <p class="vazio">Busca no Google e resume com o Claude sem sair da página.</p>
       <div class="row">
         <label class="inline">Resultados por busca
           <select id="max-resultados">
@@ -121,7 +118,6 @@
         </label>
         <button type="button" id="resumir">Buscar e resumir</button>
       </div>
-      <p id="status-servidor" class="vazio"></p>
     </section>
 
     <section class="card">
@@ -131,10 +127,9 @@
   </main>
 
   <footer>
-    Dica: permita pop-ups para esta página no navegador, para “Abrir todas” e “Copiar e abrir o Claude” funcionarem.
   </footer>
 
-  <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
+  <script src="compartilhado.js"></script>
   <script src="app.js"></script>
 </body>
 </html>

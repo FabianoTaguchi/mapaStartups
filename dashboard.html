@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Dashboard – Mapa Startups</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header>
+    <h1>Mapa Startups</h1>
+    <nav>
+      <a href="index.html">Busca</a>
+      <a href="selecionados.html" class="tom-azul colorido">Selecionados</a>
+      <a href="dashboard.html" class="ativo tom-verde colorido">Dashboard</a>
+      <a href="spam.html" class="tom-vermelho colorido">Spam</a>
+    </nav>
+  </header>
+
+  <main>
+    <p id="vazio" class="vazio" hidden>
+      Nenhum resultado selecionado ainda. Na busca, marque “Selecionar” em um resultado para ele aparecer aqui.
+    </p>
+
+    <section class="card" id="secao-indicadores" hidden>
+      <h2>1. Visão geral <span id="contador" class="badge">0</span></h2>
+      <div class="indicadores" id="indicadores"></div>
+    </section>
+
+    <section class="card" id="secao-graficos" hidden>
+      <h2>2. Distribuição dos selecionados</h2>
+      <h3 class="titulo-grafico">Por área de atuação</h3>
+      <div class="pizza" id="pizza-area"></div>
+      <h3 class="titulo-grafico">Áreas em números</h3>
+      <div class="cards-area" id="cards-area"></div>
+      <h3 class="titulo-grafico">Por responsável</h3>
+      <div class="grafico" id="grafico-responsavel"></div>
+    </section>
+  </main>
+
+  <footer>
+  </footer>
+
+  <script src="compartilhado.js"></script>
+  <script src="dashboard.js"></script>
+</body>
+</html>

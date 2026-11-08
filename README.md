@@ -22,9 +22,22 @@ Não precisa instalar nada: abra `index.html` no navegador. Os resumos são feit
    - *Combinações de K termos* – todas as combinações de tamanho K.
    - *Todas as combinações* – todos os subconjuntos (limitado a 200 buscas).
 3. **Filtros** – região da pesquisa (entra no fim de cada consulta e faz o buscador priorizar resultados daquele lugar), período (data inicial e final, digitadas manualmente) e sites a consultar (um por linha; vários sites viram `(site:a OR site:b)`).
-4. **Buscas geradas** – abra cada busca no Google, abra todas em abas, copie os links ou exporte em CSV.
-5. **Busca automática** – aparece quando o servidor está rodando com os provedores configurados.
+4. **Buscas geradas** – cada busca vira um link que abre o Google com a consulta pronta.
+5. **Busca automática** – aparece quando o servidor está rodando em http://localhost:3000.
 6. **Resumos encontrados** – lista dos resumos gerados.
+
+### Triagem dos resultados (Selecionados · Dashboard · Spam)
+
+Cada resultado da busca traz duas ações:
+
+- **Selecionar** (verde, ✓) – o item sai da busca e vai para a página **Selecionados**, que é a base do **Dashboard**.
+- **Ignorar** (vermelho, ✕) – o item sai da busca e vai para a página **Spam**, e não aparece em buscas seguintes enquanto estiver lá.
+
+Um resultado que já está em outra busca aparece tachado como *Registro Duplicado*; um que já foi selecionado aparece com fundo azul e a nota *Registro já está na seleção*. Nos dois casos as ações ficam desativadas.
+
+- **Selecionados** – lista o que foi marcado, permite remover um item (ele volta a aparecer nas buscas) e exportar em **.json** ou **.csv**.
+- **Dashboard** – indicadores, pizza por área de atuação, cartões com os números de cada área e barras por responsável. Clicando no nome do responsável abre a lista de startups dele, com link para o site e para a página consultada.
+- **Spam** – lista os descartados, com a opção de devolvê-los às buscas.
 
 ### Modo manual (seção oculta)
 
@@ -69,7 +82,7 @@ cp .env.example .env      # no Windows: copy .env.example .env
 npm start                 # abra http://localhost:3000
 ```
 
-Ao iniciar, o terminal mostra se a busca e a IA foram encontradas. A mesma informação aparece na seção 5 da página (*Busca automática*).
+Ao iniciar, o terminal mostra se a busca e a IA foram encontradas.
 
 Dicas:
 - O SearXNG às vezes é bloqueado temporariamente pelo Google; os resultados continuam vindo dos outros buscadores.

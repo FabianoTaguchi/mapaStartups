@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Selecionados – Mapa Startups</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header>
+    <h1>Mapa Startups</h1>
+    <nav>
+      <a href="index.html">Busca</a>
+      <a href="selecionados.html" class="ativo tom-azul colorido">Selecionados</a>
+      <a href="dashboard.html" class="tom-verde colorido">Dashboard</a>
+      <a href="spam.html" class="tom-vermelho colorido">Spam</a>
+    </nav>
+  </header>
+
+  <main>
+    <section class="card">
+      <div class="row between">
+        <h2>Selecionados <span id="contador" class="badge">0</span></h2>
+        <div class="row">
+          <button type="button" id="exportar-json" class="secundario" disabled>Exportar JSON</button>
+          <button type="button" id="exportar-csv" class="secundario" disabled>Exportar CSV</button>
+        </div>
+      </div>
+      <p class="vazio">Selecionados para o Dashboard.</p>
+      <div id="lista"></div>
+    </section>
+  </main>
+
+  <footer>
+    As listas ficam guardadas neste navegador. Limpar os dados do site apaga os selecionados e o spam.
+  </footer>
+
+  <script src="compartilhado.js"></script>
+  <script src="selecionados.js"></script>
+</body>
+</html>

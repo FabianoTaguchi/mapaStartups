@@ -14,7 +14,11 @@ import { resumir, statusIa, traduzirErroClaude } from './lib/ia.js';
 const RAIZ = path.dirname(fileURLToPath(import.meta.url));
 
 const TIPOS = { '.html': 'text/html; charset=utf-8', '.css': 'text/css', '.js': 'text/javascript' };
-const ARQUIVOS_PUBLICOS = new Set(['/index.html', '/style.css', '/app.js']);
+const ARQUIVOS_PUBLICOS = new Set([
+  '/index.html', '/style.css', '/app.js', '/compartilhado.js',
+  '/selecionados.html', '/selecionados.js', '/spam.html', '/spam.js',
+  '/dashboard.html', '/dashboard.js',
+]);
 
 function enviarJson(res, status, dados) {
   res.writeHead(status, { 'Content-Type': 'application/json; charset=utf-8' });

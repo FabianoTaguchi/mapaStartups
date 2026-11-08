@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Spam – Mapa Startups</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header>
+    <h1>Mapa Startups</h1>
+    <nav>
+      <a href="index.html">Busca</a>
+      <a href="selecionados.html" class="tom-azul colorido">Selecionados</a>
+      <a href="dashboard.html" class="tom-verde colorido">Dashboard</a>
+      <a href="spam.html" class="ativo tom-vermelho colorido">Spam</a>
+    </nav>
+  </header>
+
+  <main>
+    <section class="card">
+      <h2>Spam <span id="contador" class="badge">0</span></h2>
+      <p class="vazio">Resultados marcados com “Ignorar”. Eles não aparecem mais nas buscas enquanto ficarem nesta lista.</p>
+      <div id="lista"></div>
+    </section>
+  </main>
+
+  <footer>
+    As listas ficam guardadas neste navegador. Tirar um item do spam faz ele voltar a aparecer nas buscas.
+  </footer>
+
+  <script src="compartilhado.js"></script>
+  <script src="spam.js"></script>
+</body>
+</html>
